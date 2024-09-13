@@ -20,32 +20,35 @@ from exenf_alog import exenf_cost
 import heapq
 
 
-csv_file = "arcs_11_11_test.csv"
+csv_file = "arcs_6_6_test2.csv"
 """
 -------------------------------------------------------------------------------
 Universals
 -------------------------------------------------------------------------------
 """
-speed_dic = {'robo':1} #VALIDATE THESE SPEEDS THROUGH TESTING!
-height_dic = {'robo':1.5} #CONFIRM HEIGHTS - ASSUME 
-transition_time_dic = {'crawling_sneaking': 2, 'walking_sneaking': .5} #CONFIRM THESE TIMES IN SECONDS!
+speed_dic = {'charged':1, 'charging':1} #VALIDATE THESE SPEEDS THROUGH TESTING!
+height_dic = {'charged':1.5, 'charging':1.5} #CONFIRM HEIGHTS - ASSUME 
 seeker_orientation_uncertainty = {'human': (62*np.pi/180)+np.pi/2, 'bunker': 62*np.pi/180} #Enemy capabilities will influence this (among other things), will likely need to expand dictionary and definitions for each key
-point_source_dic ={'walking' : np.array([40/3, 20]), 'sneaking' : np.array([30/3, 15]), 'crawling' : np.array([20/3, 10]), 'crawling_sneaking':np.array([30/3, 15]), 'robo' : np.array([40/3, 20])}
+point_source_dic = {'charged': np.array([20/3, 10]), 'charging':np.array([40/3, 20])}
 """
 -------------------------------------------------------------------------------
 User Input
 -------------------------------------------------------------------------------
 """
 #Relative PATH in GitHub Project
-file_path = '..\\OTP Figures\\'
+file_path = ''
 file_name=file_path+"Buckner" #map identifier
-desired_lower_left_corner = (200, 200) #Given an image, assuming the bottom left corner is the origin, what is the bottom left corner of the map you want to look at
-desired_upper_right_corner = (400, 400) #Given an image, assuming the bottom left corner is the origin, what is the bottom left corner of the map you want to look at
+desired_lower_left_corner = (0, 0) #Given an image, assuming the bottom left corner is the origin, what is the bottom left corner of the map you want to look at
+desired_upper_right_corner = (50, 50) #Given an image, assuming the bottom left corner is the origin, what is the bottom left corner of the map you want to look at
 step_size=10  #desired distance, in meters, between nodes CANNOT BE TOO LARGE OR WILL CAUSE OverflowError when determining probability
-# seekers ={1: [(5,5), 5, 0, seeker_orientation_uncertainty['human']]}
-seekers={1 : [(50,50), 15, 0, seeker_orientation_uncertainty['human']], 2 : [(100,150), 15, -np.pi/2, seeker_orientation_uncertainty['human']], 3 : [(150,50), 10, 3*np.pi/4, seeker_orientation_uncertainty['bunker']]}
+seekers ={1: [(5,5), 5, 0, seeker_orientation_uncertainty['human']]}
+#seekers={1 : [(25,25), 5, 0, seeker_orientation_uncertainty['human']]} #, 2 : [(100,150), 15, -np.pi/2, seeker_orientation_uncertainty['human']], 3 : [(150,50), 10, 3*np.pi/4, seeker_orientation_uncertainty['bunker']]}
+
+
 # #{seeker ID number : [ (x,y), location uncertanty, orientation, orientation certainty ], next seeker : [...], ...}
-fog_coef = 0
+# fog_coef = 0
+
+### DR Jane Vars
 
 #Travel Time (s)
 travel_time = 20
@@ -98,8 +101,6 @@ chance_rain = 0
 fog = 0 
 
 background_noise = 50
-
-
     
 def detection_fields(mode_of_travel, perpendicular=True, plot_node_field=False, seekers=seekers, path=False):
     '''
@@ -222,7 +223,7 @@ def read_XK(start, end, file_name, w, h):
 
     unsorted_arcs = np.transpose(np.asarray(xk[1:], dtype=float))[0]
     unsorted_path = []
-    arc_dic = csv_to_dict("arcs_21_21_test.csv")
+    arc_dic = csv_to_dict(csv_file)
     print(arc_dic)
     
     for a in unsorted_arcs:
@@ -239,6 +240,7 @@ def read_XK(start, end, file_name, w, h):
             sn = node_pair[0]
             en = node_pair[1]
     
+
             if int(sn) == PATH[-1] and node_pair not in visited:
                 print("Current node pair:", node_pair)
                 PATH.append(int(en))
@@ -292,23 +294,22 @@ def get_arcs_robo(nodes_wide=nodes_wide, nodes_long=nodes_long, step_size=step_s
     
     seeker_groups={templated_seeker : get_seeker_group(seekers[templated_seeker]) for templated_seeker in seekers}
     
-    N=nodes_wide*nodes_long
-    print(N)
+    single_field=nodes_wide*nodes_long
     
     "Create arcs dictionary"
     arcs={}
     # arc_length=get_arc_length()/2
+
+    charging_nodes=[i+1+single_field for i in range(single_field)]
     
     checked=0
 
-    for i in tqdm(range(0,N)):
+    for i in tqdm(range(0,2*single_field)):
         node_i=i+1
 
         [coordinate_i, elevation_i, vegetation_i, adjacent_nodes_i] = node_field[node_i]
         position_i=np.array(coordinate_i+(elevation_i,))
-        print(position_i)
         for node_j in adjacent_nodes_i:
-            print(node_j)
             "Dont recaclulate arcs arleady found"
             key=(node_j,node_i)
             if key not in arcs:
@@ -317,41 +318,64 @@ def get_arcs_robo(nodes_wide=nodes_wide, nodes_long=nodes_long, step_size=step_s
                 [coordinate_j, elevation_j, vegetation_j, adjacent_nodes_j] = node_field[node_j]
                 position_j=np.array(coordinate_j+(elevation_j,))
                 
-                #print(position_j)
                 "Determine Time for travel"
                 distance = np.linalg.norm(position_j-position_i)
-                mode_of_travel='robo'
+                
+                
                 
                 "Determine time base on speed, i average vegetation encountered"
                 average_vegetation=(vegetation_i+vegetation_j)/2
                 vegetation_factor=1-(2/9)*average_vegetation #NEEDS VALIDATION THROUGH TESTING!!!!!!!!!!!
-                travel_time=distance/(vegetation_factor*speed_dic[mode_of_travel])
                 
+                
+
+                if coordinate_i == coordinate_j:
+                    mode_of_travel = 'charging'
+                    travel_time = 60
+                if node_i in charging_nodes:
+                    mode_of_travel='charging'
+                    travel_time=distance/(vegetation_factor*speed_dic[mode_of_travel])
+                else:
+                    mode_of_travel='charged'
+                    travel_time=distance/(vegetation_factor*speed_dic[mode_of_travel])
+
                 "Determine Probability of detection"
                 visual_detection=get_visual_detection(position_i, position_j, mode_of_travel, travel_time, seeker_groups)
                 audio_detection=get_audio_detection(position_i, position_j, mode_of_travel, seeker_groups)
-                
+                risk_level = max(visual_detection,audio_detection)    
+                "Determine the Energy Cost"
+
                 p1 = [position_i[0] , position_i[1] , position_i[2]]
                 p2 = [position_j[0] , position_j[1] , position_j[2]]
-                
-                #Input Parameters
-                heading = direction_of_travel(p1,p2,math)
-                
-                params = [p1, p2, travel_time, platform_name, added_mass, wind_velocity, wind_direction, heading, debug]
 
-                #Input Function Handles
-                fcns = [np, minimize, interp1d, math, os]
+                if p1 == p2:
+                    energy_cost = 0
 
-                #Exergy/Energy Cost
-                Jcon, Jgen, msg = exenf_cost(params,fcns)
-                #energy_level = 1
+                else:
+                    #Input Parameters
+                    heading = direction_of_travel(p1,p2,math)
+                    if heading == None:
+                        heading = 1
                 
-                energy_level = Jcon - Jgen
+                    params = [p1, p2, travel_time, platform_name, added_mass, wind_velocity, wind_direction, heading, debug]
 
-                risk_level = max(visual_detection,audio_detection)    
-                print(energy_level)
-                arcs[(node_i,node_j)]=[position_i, position_j, mode_of_travel, travel_time, risk_level, energy_level]
-                arcs[(node_j,node_i)]=[position_j, position_i, mode_of_travel, travel_time, risk_level, energy_level]
+                    #Input Function Handles
+                    fcns = [np, minimize, interp1d, math, os]
+
+                    #Exergy/Energy Cost
+                    Jcon, Jgen, msg = exenf_cost(params,fcns)
+                    #energy_level = 1
+                    
+                    if mode_of_travel == 'charging':
+                        Jgen += 50
+
+                    energy_cost = Jcon - Jgen
+                #TEST CODE
+                # energy_cost = 0
+                # risk_level = 0
+                # print(energy_cost)
+                arcs[(node_i,node_j)]=[position_i, position_j, mode_of_travel, travel_time, risk_level, energy_cost]
+                arcs[(node_j,node_i)]=[position_j, position_i, mode_of_travel, travel_time, risk_level, energy_cost]
                 checked+=1
 
     return arcs, node_field
@@ -394,6 +418,8 @@ def create_node_field_robo():
 
     """
     node_field={}
+    single_field=nodes_wide*nodes_long
+
 
     node_id=1
     for l in range(nodes_long):
@@ -403,12 +429,14 @@ def create_node_field_robo():
             elevation = (elevation_map.getpixel((x, y))[0]/255)*max_elevation
             r= vegetation_map.getpixel((x, y))[0] 
             vegetation = (3-(3*(r/255))) #vegetation is scaled "continuously" from 0 (None) to 3 (Dense)
-            #robo level
-            node_field[node_id] = [coordinate, elevation, vegetation, get_adjacent_nodes(node_id, coordinate)]
-            node_id+=1
-            
+            #charged level
+            node_field[node_id] = [coordinate, elevation+1, vegetation, get_adjacent_nodes(node_id, coordinate)]
+            #charging level
+            node_field[node_id+single_field] = [coordinate, elevation+1, vegetation, get_adjacent_nodes(node_id+single_field, coordinate)]
+            node_id+=1            
     return node_field
 
+        
 def get_adjacent_nodes(node_id, coordinate):
     """
     Gets the adjacent nodes for a specific node number
@@ -419,38 +447,38 @@ def get_adjacent_nodes(node_id, coordinate):
         The node which you wish to know its adjacent nodes.
     coordinate : tuple
         x and y coordinates of node_id.
-    nodes_wide : Integer
-        Width of node field measured in nodes.
-    nodes_long : Integer
-        Length of node field measured in nodes.
-    step_size : Float
-        Desired birds eye distance between N-S or E-W adjacent nodes.
+    nodes_wide : Integer (UNIVERSAL)
+        width of node field measured in nodes.
+    nodes_long : Integer (UNIVERSAL)
+        length of node field measured in nodes.
+    step_size : Float (UNIVERSAL)
+        desired birds eye distance between N-S or E-W adjacent nodes.
 
     Returns
     -------
     actual_adjacents : list
-        List of node ID numbers that are adjacent to the given node_id
+        list of node ID numbers that are adjacent to the given node_id
 
     """
+    single_field=nodes_wide*nodes_long
+    potential_adjacents=[node_id+1,node_id+nodes_wide+1,node_id+nodes_wide,
+                         node_id+nodes_wide-1,node_id-1,node_id-nodes_wide-1, 
+                         node_id-nodes_wide,node_id-nodes_wide+1, 
+                         node_id+single_field,node_id-single_field] #Possible nodes starting at theta=0 and proceeding pi/4 and then adding next level and previous level
     
-    potential_adjacents = [node_id + 1, node_id + nodes_wide + 1, node_id + nodes_wide,
-                           node_id + nodes_wide - 1, node_id - 1, node_id - nodes_wide - 1, 
-                           node_id - nodes_wide, node_id - nodes_wide + 1]  # Possible nodes
-    
-    potential_adjacents_locations = [(coordinate[0] + step_size, coordinate[1]), (coordinate[0] + step_size, coordinate[1] + step_size),
-                                      (coordinate[0], coordinate[1] + step_size), (coordinate[0] - step_size, coordinate[1] + step_size),
-                                      (coordinate[0] - step_size, coordinate[1]), (coordinate[0] - step_size, coordinate[1] - step_size),
-                                      (coordinate[0], coordinate[1] - step_size), (coordinate[0] + step_size, coordinate[1] - step_size)]  # Possible node locations
-    
-    actual_adjacents = []
+    potential_adjacents_locations=[(coordinate[0]+step_size,coordinate[1]),(coordinate[0]+step_size,coordinate[1]+step_size),(coordinate[0],coordinate[1]+step_size),
+                                   (coordinate[0]-step_size,coordinate[1]+step_size),(coordinate[0]-step_size,coordinate[1]),(coordinate[0]-step_size,coordinate[1]-step_size),
+                                   (coordinate[0],coordinate[1]-step_size),(coordinate[0]+step_size,coordinate[1]-step_size),coordinate,coordinate] #Possible node locations starting at theta=0 and proceeding pi/4 and then adding next level and previous level
+    actual_adjacents=[]
 
-    for i in range(len(potential_adjacents)):
+    for i in range(10):
         potential_location=potential_adjacents_locations[i]
-        #in_horizon = potential_adjacents[i]>0 and potential_adjacents[i]<=3*single_field
+        in_horizon = potential_adjacents[i]>0 and potential_adjacents[i]<=2*single_field
         in_map = potential_location[0]>=0 and potential_location[0]<step_size*nodes_wide and potential_location[1]>=0 and potential_location[1]<step_size*nodes_long
-        if in_map:
+        if in_horizon and in_map:
             actual_adjacents.append(potential_adjacents[i])
 
+            
     return actual_adjacents
 
 def classify_node(position_i):
@@ -565,7 +593,8 @@ def write_csv_files(scenario_name, check=False):
     # print(middle_name)
     arcs, node_field = get_arcs_robo()
     N = len(node_field)
-    
+    # N = 2 * (nodes_wide*nodes_long)
+
     ordered_arcs = get_ordered_arcs(arcs, node_field, N)
     
     'Write Arcs file to csv'
@@ -589,7 +618,7 @@ def write_csv_files(scenario_name, check=False):
         return 
     
     "Get inflow sets, outflow sets, and triangle sets"
-    node_i_inflows, node_i_outflows = get_ins_outs(ordered_arcs, N)
+    node_i_inflows, node_i_outflows = get_ins_outs(ordered_arcs,N)
     triangle_sets = get_triangle_sets(node_field, ordered_arcs)
     
     'write triangle relationships to csv'
@@ -636,17 +665,15 @@ def get_ordered_arcs(arcs, node_field, N):
         definitions are arc Id numbers, probability of detection, travel time and a movement code
         e.g. {(node i, node j) : [arc_ID, node_i, node_j, risk, time, movement_code ], ... }
     """
-    travel_dic = {'robo' : 3} #Used to produce the movement code
+    travel_dic = {'charged':0, 'charging':1} #Used to produce the movement code
     arc_ID = 1 #Initiate arc IDs
     ordered_arcs={} # Initiate ordered arcs dictionary
+
     for i in range(N): 
         node_i = i + 1
         [coordinate_i, elevation_i, vegetation_i, adjacent_nodes_i] = node_field[node_i]
         for node_j in adjacent_nodes_i:
-            # print(arcs[(node_i, node_j)])
             [ (x_i, y_i, z_i), (x_j, y_j, z_j), mode_of_travel, time, risk, energy_level ] = arcs[(node_i, node_j)]
-            # if node_i <= nodes_wide*nodes_long:
-            #     print(arc_ID, node_i, node_j)
             ordered_arcs[(node_i, node_j)] = [arc_ID, risk, time, energy_level, travel_dic[mode_of_travel]]
             arc_ID += 1
     return ordered_arcs
@@ -1200,7 +1227,7 @@ def get_node_vector(node_id, w, h, scale):
         if node_num <= w*i:
             return np.array([node_num-w*(i-1)-1, i-1])*scale
         i += 1
-    print('SWW', node_id)
+    # print('SWW', node_id)
     return
 
 
@@ -1634,3 +1661,106 @@ def arc_ID(w, h):
         print(str(i+1)+" of "+str(A)+" complete")
     return arc_dic
 
+
+
+"""
+-------------------------------------------------------------------------------
+Visualization Functions
+-------------------------------------------------------------------------------
+"""
+
+def plot_sattelite():
+    '''
+    This function plots the image of a sattelite with the enemy locations on it
+
+    Returns
+    -------
+    None.
+
+    '''
+    xvals=np.linspace(0, desired_map_width,2*nodes_wide-1)
+    yvals=np.linspace(0, desired_map_length,2*nodes_long-1)
+    plt.style.use('ggplot')
+    fig, ax= plt.subplots()
+    ax.imshow(satelite_map, extent=[0, xvals[-1], 0, yvals[-1]], origin='lower', cmap='viridis') 
+    
+    for seeker in seekers:
+        [(seeker_x,seeker_y), z, seeker_orient, seeker_orient_uncertainty] = seekers[seeker]
+        ax.arrow(seeker_x, seeker_y, 2*step_size*np.cos(seeker_orient), 2*step_size*np.sin(seeker_orient), width=step_size/10, head_width=step_size/2, color='red')
+        thetas=np.linspace(0, 2*np.pi,100)
+        xs = [seeker_x+z*np.cos(thetas[i]) for i in range(100)]
+        ys = [seeker_y+z*np.sin(thetas[i]) for i in range(100)]
+        ax.plot(xs,ys,color='red')
+    
+    plt.title('Locations of Multiple Enemies')
+    
+    return
+
+
+def plot_path(situtation_name, start, end, seekers=seekers, w=nodes_wide,h=nodes_long, scale=10):
+    plt.style.use('ggplot')
+    fig, ax= plt.subplots() 
+    single_field = w*h 
+
+    plot_contour()
+
+    path = read_XK(start, end, "output_"+situtation_name +".csv", w, h)
+    print('here')
+
+    
+    for seeker in seekers:
+        [(seeker_x,seeker_y), z, seeker_orient, seeker_orient_uncertainty] = seekers[seeker]
+        # ax.arrow(seeker_x, seeker_y, 2*step_size*np.cos(seeker_orient), 2*step_size*np.sin(seeker_orient), width=step_size/10, head_width=step_size/2, color='red')
+        thetas=np.linspace(0, 2*np.pi,100)
+        xs = [seeker_x+z*np.cos(thetas[i]) for i in range(100)]
+        ys = [seeker_y+z*np.sin(thetas[i]) for i in range(100)]
+        # ax.plot(xs,ys,color='red')
+        
+    "Plot Path"
+    pscale = {'w': 0, 'c': 2, 's': 1}
+    pathx = []
+    pathy = []
+    px = [[], [], []]
+    py = [[], [], []]
+
+    for node in path:
+        node_id = get_node_id_master(node, w, h)
+        node_vec = get_node_vector(node_id, w, h, scale)
+        px[pscale[node_id[0]]].append(node_vec[0])
+        py[pscale[node_id[0]]].append(node_vec[1])
+        pathx.append(node_vec[0])
+        pathy.append(node_vec[1])
+
+    # Plot path
+    charging = {(20, 25), (2, 3)}  # Example set of special segments (node indices)
+
+
+    # plt.plot(pathx, pathy, color='black', linewidth=3)
+
+    # Add arrows to indicate direction
+    for i in range(len(pathx) - 1):
+    # Check if the segment is in the special set
+        segment = (path[i], path[i + 1])
+        print(path[i])
+        if (path[i] > single_field) or (path[i]+1 > single_field):
+            color = 'green'
+        else:
+            color = 'black'
+        
+        # Arrows
+        plt.annotate('', xy=(pathx[i + 1], pathy[i + 1]), xytext=(pathx[i], pathy[i]),
+                    arrowprops=dict(facecolor=color, edgecolor=color, shrink=0.05))
+        
+        # Line Segments
+        plt.plot([pathx[i], pathx[i + 1]], [pathy[i], pathy[i + 1]], color=color, linewidth=3)
+
+        
+    plt.plot([], [], color='green', label='charging')  # Placeholder for legend
+    plt.plot([], [], color='black', label='charged')
+
+    plt.xlabel('X coordinate')
+    plt.ylabel('Y coordinate')
+    plt.title('Path with Direction')
+    plt.grid(True)
+    plt.legend()
+    plt.show()

@@ -232,6 +232,7 @@ def drive_cycle(params,fcns):
 
 #Wind Velocity Vector Decomposition
 def wind_velocity_vector_decomposition(params,fcns):
+    print(params)
 
     #Extract Parameters
     [p1, p2, Vxw, 𝜑, 𝜃] = params
