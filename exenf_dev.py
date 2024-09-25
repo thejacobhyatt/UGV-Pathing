@@ -63,4 +63,4 @@ fcns = [np, minimize, interp1d, math, os]
 Jcon, Jgen, msg = exenf_cost(params,fcns)
 
 #Execution Time
-print("--- %s seconds ---" % (time.time() - start_time))
+# print("--- %s seconds ---" % (time.time() - start_time))

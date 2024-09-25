@@ -39,10 +39,17 @@ User Input
 file_path = ''
 file_name=file_path+"Buckner" #map identifier
 desired_lower_left_corner = (0, 0) #Given an image, assuming the bottom left corner is the origin, what is the bottom left corner of the map you want to look at
-desired_upper_right_corner = (50, 50) #Given an image, assuming the bottom left corner is the origin, what is the bottom left corner of the map you want to look at
+desired_upper_right_corner = (500, 500) #Given an image, assuming the bottom left corner is the origin, what is the bottom left corner of the map you want to look at
 step_size=10  #desired distance, in meters, between nodes CANNOT BE TOO LARGE OR WILL CAUSE OverflowError when determining probability
-seekers ={1: [(5,5), 5, 0, seeker_orientation_uncertainty['human']]}
+# seekers ={1: [(5,5), 5, 0, seeker_orientation_uncertainty['human']]}
 #seekers={1 : [(25,25), 5, 0, seeker_orientation_uncertainty['human']]} #, 2 : [(100,150), 15, -np.pi/2, seeker_orientation_uncertainty['human']], 3 : [(150,50), 10, 3*np.pi/4, seeker_orientation_uncertainty['bunker']]}
+seekers={1 : [(25,25), 5, 0, seeker_orientation_uncertainty['human']], 
+         2 : [(100,150), 15, -np.pi/2, seeker_orientation_uncertainty['human']], 
+         3 : [(150,50), 10, 3*np.pi/4, seeker_orientation_uncertainty['bunker']], 
+         4 : [(300,300), 10, 3*np.pi/4, seeker_orientation_uncertainty['bunker']],
+         5 : [(400,100), 10, 11*np.pi/6, seeker_orientation_uncertainty['human']],
+         6 : [(100,400), 10, 11*np.pi/6, seeker_orientation_uncertainty['human']]}
+
 
 
 # #{seeker ID number : [ (x,y), location uncertanty, orientation, orientation certainty ], next seeker : [...], ...}
@@ -338,10 +345,10 @@ def get_arcs_robo(nodes_wide=nodes_wide, nodes_long=nodes_long, step_size=step_s
                 else:
                     mode_of_travel='charged'
                     travel_time=distance/(vegetation_factor*speed_dic[mode_of_travel])
-
                 "Determine Probability of detection"
                 visual_detection=get_visual_detection(position_i, position_j, mode_of_travel, travel_time, seeker_groups)
                 audio_detection=get_audio_detection(position_i, position_j, mode_of_travel, seeker_groups)
+
                 risk_level = max(visual_detection,audio_detection)    
                 "Determine the Energy Cost"
 
