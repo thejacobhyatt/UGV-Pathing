@@ -21,6 +21,7 @@ import heapq
 
 
 csv_file = "arcs_51_51_massive.csv"
+initial_battery = 2606
 """
 -------------------------------------------------------------------------------
 Universals
@@ -1704,12 +1705,16 @@ def plot_sattelite():
     return
 
 
-def plot_path(situtation_name, start, end, seekers=seekers, w=nodes_wide,h=nodes_long, scale=10):
+def plot_path(situtation_name, start, end, seekers=seekers, w=nodes_wide,h=nodes_long, scale=10, detection=False):
     single_field = w*h 
 
     plot_contour()
+    if detection == True:
+        detection_fields('charging')
 
     path = read_XK(start, end, "output_"+situtation_name +".csv", w, h)
+    print('Paths Followed:',path)
+
     
     for seeker in seekers:
         [(seeker_x,seeker_y), z, seeker_orient, seeker_orient_uncertainty] = seekers[seeker]
@@ -1792,8 +1797,14 @@ def plot_energy(situtation_name, seekers=seekers, w=nodes_wide,h=nodes_long, sca
     for arc in arcPath:
         energy_step.append(arc_dic[arc])
 
-
-    initial_battery = 100
+    with open(csv_file, 'r') as file:
+        csv_reader = csv.reader(file)
+        # Skip header if present
+        next(csv_reader, None)
+        for row in csv_reader:
+            key = int(row[0])  # Assuming the first column is the key
+            values = float(row[5])  # Assuming the rest of the row are the values
+            arc_dic[key] = values
 
     # Calculate the remaining battery after each step
     remaining_battery = [initial_battery]  # Start with full battery
@@ -1819,50 +1830,13 @@ def plot_energy(situtation_name, seekers=seekers, w=nodes_wide,h=nodes_long, sca
     plt.plot(range(len(energy_step)), energy_step, marker='o')
 
     # Add labels and title
-    plt.xlabel('Index')
-    plt.ylabel('Value')
-    plt.title('Plot of Index vs. Value')
+    plt.xlabel('Energy Generated')
+    plt.ylabel('Step')
+    plt.title('Energy Generated per Step')
 
     # Display the plot
     plt.show()
 
+    print('Energy Per Step')
     print(energy_step)
     print('Total Energy Expended:',sum(energy_step))
-
-
-def plot_energy(situtation_name, seekers=seekers, w=nodes_wide,h=nodes_long, scale=10):
-    energy_step = []
-    arcPath = []
-
-    arc_dic = {}
-    with open(csv_file, 'r') as file:
-        csv_reader = csv.reader(file)
-        # Skip header if present
-        next(csv_reader, None)
-        for row in csv_reader:
-            key = int(row[0])  # Assuming the first column is the key
-            values = float(row[5])  # Assuming the rest of the row are the values
-            arc_dic[key] = values
-
-    with open("output_massive.csv", mode='r') as file:
-        csv_reader = csv.reader(file)
-        next(csv_reader)
-        for row in csv_reader:
-            arcPath.append(float(row[0]))
-            
-    for arc in arcPath:
-        energy_step.append(arc_dic[arc])
-    
-    plt.plot(range(len(energy_step)), energy_step, marker='o')
-
-    # Add labels and title
-    plt.xlabel('Index')
-    plt.ylabel('Value')
-    plt.title('Plot of Index vs. Value')
-
-    # Display the plot
-    plt.show()
-
-    print(energy_step)
-    print('Total Energy Expended:',sum(energy_step))
-
