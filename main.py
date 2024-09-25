@@ -20,7 +20,7 @@ from exenf_alog import exenf_cost
 import heapq
 
 
-csv_file = "arcs_6_6_test2.csv"
+csv_file = "arcs_51_51_massive.csv"
 """
 -------------------------------------------------------------------------------
 Universals
@@ -231,7 +231,7 @@ def read_XK(start, end, file_name, w, h):
     unsorted_arcs = np.transpose(np.asarray(xk[1:], dtype=float))[0]
     unsorted_path = []
     arc_dic = csv_to_dict(csv_file)
-    print(arc_dic)
+    # print(arc_dic)
     
     for a in unsorted_arcs:
         (sn, en) = arc_dic[a]
@@ -240,7 +240,7 @@ def read_XK(start, end, file_name, w, h):
     visited = []
     PATH = [start]
 
-    print(unsorted_path)
+    # print(unsorted_path)
 
     while PATH[-1] != end:
         for node_pair in unsorted_path:
@@ -249,7 +249,7 @@ def read_XK(start, end, file_name, w, h):
     
 
             if int(sn) == PATH[-1] and node_pair not in visited:
-                print("Current node pair:", node_pair)
+                #print("Current node pair:", node_pair)
                 PATH.append(int(en))
                 visited.append(node_pair)
                 break
@@ -1705,15 +1705,11 @@ def plot_sattelite():
 
 
 def plot_path(situtation_name, start, end, seekers=seekers, w=nodes_wide,h=nodes_long, scale=10):
-    plt.style.use('ggplot')
-    fig, ax= plt.subplots() 
     single_field = w*h 
 
     plot_contour()
 
     path = read_XK(start, end, "output_"+situtation_name +".csv", w, h)
-    print('here')
-
     
     for seeker in seekers:
         [(seeker_x,seeker_y), z, seeker_orient, seeker_orient_uncertainty] = seekers[seeker]
@@ -1748,15 +1744,15 @@ def plot_path(situtation_name, start, end, seekers=seekers, w=nodes_wide,h=nodes
     for i in range(len(pathx) - 1):
     # Check if the segment is in the special set
         segment = (path[i], path[i + 1])
-        print(path[i])
+        # print(path[i])
         if (path[i] > single_field) or (path[i]+1 > single_field):
             color = 'green'
         else:
             color = 'black'
         
         # Arrows
-        plt.annotate('', xy=(pathx[i + 1], pathy[i + 1]), xytext=(pathx[i], pathy[i]),
-                    arrowprops=dict(facecolor=color, edgecolor=color, shrink=0.05))
+        #plt.annotate('', xy=(pathx[i + 1], pathy[i + 1]), xytext=(pathx[i], pathy[i]),
+        #            arrowprops=dict(facecolor=color, edgecolor=color, shrink=0.05))
         
         # Line Segments
         plt.plot([pathx[i], pathx[i + 1]], [pathy[i], pathy[i + 1]], color=color, linewidth=3)
@@ -1771,3 +1767,102 @@ def plot_path(situtation_name, start, end, seekers=seekers, w=nodes_wide,h=nodes
     plt.grid(True)
     plt.legend()
     plt.show()
+
+
+def plot_energy(situtation_name, seekers=seekers, w=nodes_wide,h=nodes_long, scale=10):
+    energy_step = []
+    arcPath = []
+
+    arc_dic = {}
+    with open(csv_file, 'r') as file:
+        csv_reader = csv.reader(file)
+        # Skip header if present
+        next(csv_reader, None)
+        for row in csv_reader:
+            key = int(row[0])  # Assuming the first column is the key
+            values = float(row[5])  # Assuming the rest of the row are the values
+            arc_dic[key] = values
+
+    with open("output_massive.csv", mode='r') as file:
+        csv_reader = csv.reader(file)
+        next(csv_reader)
+        for row in csv_reader:
+            arcPath.append(float(row[0]))
+            
+    for arc in arcPath:
+        energy_step.append(arc_dic[arc])
+
+
+    initial_battery = 100
+
+    # Calculate the remaining battery after each step
+    remaining_battery = [initial_battery]  # Start with full battery
+
+    for spent in energy_step:
+        remaining_battery.append(remaining_battery[-1] - spent)
+
+    # Remove the initial value since we want to plot the usage after steps
+    remaining_battery.pop(0)
+
+    # Plot the remaining battery vs step
+    plt.plot(range(len(remaining_battery)), remaining_battery, marker='o', linestyle='-', color='b')
+
+    # Add labels and title
+    plt.xlabel('Step')
+    plt.ylabel('Remaining Battery (%)')
+    plt.title('Battery Expenditure Over Steps')
+
+    # Display the plot
+    plt.show()
+
+    
+    plt.plot(range(len(energy_step)), energy_step, marker='o')
+
+    # Add labels and title
+    plt.xlabel('Index')
+    plt.ylabel('Value')
+    plt.title('Plot of Index vs. Value')
+
+    # Display the plot
+    plt.show()
+
+    print(energy_step)
+    print('Total Energy Expended:',sum(energy_step))
+
+
+def plot_energy(situtation_name, seekers=seekers, w=nodes_wide,h=nodes_long, scale=10):
+    energy_step = []
+    arcPath = []
+
+    arc_dic = {}
+    with open(csv_file, 'r') as file:
+        csv_reader = csv.reader(file)
+        # Skip header if present
+        next(csv_reader, None)
+        for row in csv_reader:
+            key = int(row[0])  # Assuming the first column is the key
+            values = float(row[5])  # Assuming the rest of the row are the values
+            arc_dic[key] = values
+
+    with open("output_massive.csv", mode='r') as file:
+        csv_reader = csv.reader(file)
+        next(csv_reader)
+        for row in csv_reader:
+            arcPath.append(float(row[0]))
+            
+    for arc in arcPath:
+        energy_step.append(arc_dic[arc])
+    
+    plt.plot(range(len(energy_step)), energy_step, marker='o')
+
+    # Add labels and title
+    plt.xlabel('Index')
+    plt.ylabel('Value')
+    plt.title('Plot of Index vs. Value')
+
+    # Display the plot
+    plt.show()
+
+    print(energy_step)
+    print('Total Energy Expended:',sum(energy_step))
+
