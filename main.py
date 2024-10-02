@@ -20,8 +20,8 @@ from exenf_alog import exenf_cost
 import heapq
 
 
-csv_file = "arcs_51_51_massive.csv"
-initial_battery = 2606
+csv_file = "arcs_51_51_fixed.csv"
+initial_battery = 10000
 """
 -------------------------------------------------------------------------------
 Universals
@@ -1776,7 +1776,8 @@ def plot_path(situtation_name, start, end, seekers=seekers, w=nodes_wide,h=nodes
 
 
 def plot_energy(situtation_name, seekers=seekers, w=nodes_wide,h=nodes_long, scale=10):
-    energy_step = []
+    energyStep = []
+    elevationStep = []
     arcPath = []
 
     arc_dic = {}
@@ -1786,31 +1787,24 @@ def plot_energy(situtation_name, seekers=seekers, w=nodes_wide,h=nodes_long, sca
         next(csv_reader, None)
         for row in csv_reader:
             key = int(row[0])  # Assuming the first column is the key
-            values = float(row[5])  # Assuming the rest of the row are the values
-            arc_dic[key] = values
+            energy = float(row[5])
+            elevation = float(row[-1])   # Assuming the rest of the row are the values
+            arc_dic[key] = [energy, elevation]
 
-    with open("output_massive.csv", mode='r') as file:
+    with open("output_fixed.csv", mode='r') as file:
         csv_reader = csv.reader(file)
         next(csv_reader)
         for row in csv_reader:
             arcPath.append(float(row[0]))
             
     for arc in arcPath:
-        energy_step.append(arc_dic[arc])
-
-    with open(csv_file, 'r') as file:
-        csv_reader = csv.reader(file)
-        # Skip header if present
-        next(csv_reader, None)
-        for row in csv_reader:
-            key = int(row[0])  # Assuming the first column is the key
-            values = float(row[5])  # Assuming the rest of the row are the values
-            arc_dic[key] = values
+        energyStep.append(arc_dic[arc][0])
+        elevationStep.append(arc_dic[arc][1])
 
     # Calculate the remaining battery after each step
     remaining_battery = [initial_battery]  # Start with full battery
 
-    for spent in energy_step:
+    for spent in energyStep:
         remaining_battery.append(remaining_battery[-1] - spent)
 
     # Remove the initial value since we want to plot the usage after steps
@@ -1821,23 +1815,39 @@ def plot_energy(situtation_name, seekers=seekers, w=nodes_wide,h=nodes_long, sca
 
     # Add labels and title
     plt.xlabel('Step')
-    plt.ylabel('Remaining Battery (%)')
+    plt.ylabel('Remaining Battery Charge')
     plt.title('Battery Expenditure Over Steps')
 
     # Display the plot
     plt.show()
 
-    
-    plt.plot(range(len(energy_step)), energy_step, marker='o')
+    plt.plot(range(len(elevationStep)), elevationStep, marker='x')
+    plt.plot(range(len(energyStep)), energyStep, marker='o')
+
 
     # Add labels and title
-    plt.xlabel('Energy Generated')
-    plt.ylabel('Step')
-    plt.title('Energy Generated per Step')
+    plt.ylabel('Energy Cost')
+    plt.xlabel('Step')
+    plt.title('Energy Cost per Step')
 
     # Display the plot
     plt.show()
 
     print('Energy Per Step')
-    print(energy_step)
-    print('Total Energy Expended:',sum(energy_step))
+    print(energyStep)
+    print('Total Energy Expended:',sum(energyStep))
+
+
+    # print(elevationStep)
+    # plt.ylabel('Elevation')
+    # plt.xlabel('Step')
+    # plt.title('Elevation per Step')
+
+
+    charging = 0
+    for i in arcPath:
+        if i >= 45602/2:
+            charging += 1
+    print(charging)
+
+    print(arcPath)
