@@ -373,6 +373,9 @@ def get_arcs_robo(nodes_wide=nodes_wide, nodes_long=nodes_long, step_size=step_s
                     #Exergy/Energy Cost
                     Jcon, Jgen, msg = exenf_cost(params,fcns)
                     #energy_level = 1
+
+                    # Apply a penalty for regenerative braking 
+                    Jgen = Jgen*(.25)
                     
                     if mode_of_travel == 'charging':
                         Jgen += 50
@@ -382,8 +385,8 @@ def get_arcs_robo(nodes_wide=nodes_wide, nodes_long=nodes_long, step_size=step_s
                 # energy_cost = 0
                 # risk_level = 0
                 # print(energy_cost)
-                arcs[(node_i,node_j)]=[position_i, position_j, mode_of_travel, travel_time, risk_level, energy_cost]
-                arcs[(node_j,node_i)]=[position_j, position_i, mode_of_travel, travel_time, risk_level, energy_cost]
+                arcs[(node_i,node_j)]=[position_i, position_j, mode_of_travel, travel_time, risk_level, energy_cost, elevation_i]
+                arcs[(node_j,node_i)]=[position_j, position_i, mode_of_travel, travel_time, risk_level, energy_cost, elevation_i]
                 checked+=1
 
     return arcs, node_field
@@ -1740,8 +1743,6 @@ def plot_path(situtation_name, start, end, seekers=seekers, w=nodes_wide,h=nodes
         pathy.append(node_vec[1])
 
     # Plot path
-    charging = {(20, 25), (2, 3)}  # Example set of special segments (node indices)
-
 
     # plt.plot(pathx, pathy, color='black', linewidth=3)
 
