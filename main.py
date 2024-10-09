@@ -1821,9 +1821,10 @@ def plot_energy(situtation_name, seekers=seekers, w=nodes_wide,h=nodes_long, sca
     # Display the plot
     plt.show()
 
-    plt.plot(range(len(elevationStep)), elevationStep, marker='x')
-    plt.plot(range(len(energyStep)), energyStep, marker='o')
+    plt.plot(range(len(elevationStep)), elevationStep, marker='x', label='Elevation Step')
 
+    # Bar plot for energy steps
+    plt.bar(range(len(energyStep)), energyStep, color='blue', alpha=0.6, label='Energy Step')
 
     # Add labels and title
     plt.ylabel('Energy Cost')
@@ -1831,6 +1832,7 @@ def plot_energy(situtation_name, seekers=seekers, w=nodes_wide,h=nodes_long, sca
     plt.title('Energy Cost per Step')
 
     # Display the plot
+    plt.legend()
     plt.show()
 
     print('Energy Per Step')
@@ -1851,3 +1853,36 @@ def plot_energy(situtation_name, seekers=seekers, w=nodes_wide,h=nodes_long, sca
     print(charging)
 
     print(arcPath)
+
+
+def calculateDetection(situation_name):
+    detectionStep = []
+    arcPath = []
+    pathFile = 'output_'+situation_name+'.csv'
+
+    arc_dic = {}
+    with open(csv_file, 'r') as file:
+        csv_reader = csv.reader(file)
+        # Skip header if present
+        next(csv_reader, None)
+        for row in csv_reader:
+            key = int(row[0])  # Assuming the first column is the key
+            energy = float(row[5])
+            elevation = float(row[-1])
+            detection = float(row[3])   # Assuming the rest of the row are the values
+            arc_dic[key] = [energy,detection, elevation]
+
+    with open(pathFile, mode='r') as file:
+        csv_reader = csv.reader(file)
+        next(csv_reader)
+        for row in csv_reader:
+            arcPath.append(float(row[0]))
+            
+    for arc in arcPath:
+        detectionStep.append(arc_dic[arc][1])
+
+    # Calculate 
+    no_detection_prob = np.prod([1 - p for p in detectionStep])
+    # Return the probability of detection
+    return 1 - no_detection_prob
+    
