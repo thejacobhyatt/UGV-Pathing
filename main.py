@@ -129,9 +129,7 @@ def detection_fields(mode_of_travel, perpendicular=True, plot_node_field=False, 
     -------
     None.
 
-    '''
-    aud_lis = []
-    
+    '''    
     seeker_groups={templated_seeker : get_seeker_group(seekers[templated_seeker]) for templated_seeker in seekers}
     xvals=np.linspace(0, desired_map_width,2*nodes_wide-1)
     yvals=np.linspace(0, desired_map_length,2*nodes_long-1)
@@ -169,48 +167,16 @@ def detection_fields(mode_of_travel, perpendicular=True, plot_node_field=False, 
         ys = [seeker_y+z*np.sin(thetas[i]) for i in range(100)]
         ax.plot(xs,ys,color='red')
     fig.colorbar(im, label="Detection Probability")
+    plt.xlabel('X Offset')
+    plt.ylabel('Y Offset')
+    plt.grid(False)
+    plt.title("Detection Field")
+
     if plot_node_field:
         node_field=create_node_field_robo()
         for i in range(nodes_wide*nodes_long):
             (x,y)=node_field[i+1][0]
-            plt.scatter(x,y,color="black")
-    plt.title('Detection Radius for Multiple Enemies', fontsize=20)
-    
-    if path:
-        situtation_name = 'test' 
-        start = 1
-        end = 441
-        seekers=seekers
-        w=nodes_wide
-        h=nodes_long
-        scale=10
-        plt.style.use('ggplot')
-        fig, ax= plt.subplots() 
-
-        plot_contour()
-
-        path = read_XK(start, end, "output_"+situtation_name +".csv", w, h)
-        print('here')
-
-            
-        "Plot Path"
-        pscale = {'w': 0, 'c': 2, 's': 1}
-        pathx = []
-        pathy = []
-        px = [[], [], []]
-        py = [[], [], []]
-
-        for node in path:
-            node_id = get_node_id_master(node, w, h)
-            node_vec = get_node_vector(node_id, w, h, scale)
-            px[pscale[node_id[0]]].append(node_vec[0])
-            py[pscale[node_id[0]]].append(node_vec[1])
-            pathx.append(node_vec[0])
-            pathy.append(node_vec[1])
-        s = 100
-        plt.plot(pathx, pathy, color='black', linewidth=3)
-        plt.scatter(px[0], py[0], color='green', label="Walking", s=s)
-    
+            plt.scatter(x,y,color="black")    
     
     
     return     
@@ -542,7 +508,10 @@ def plot_contour(greens = False, levels = 10):
         
     if greens == False:
         ax.imshow(satelite_map, extent=[0, xvals[-1], 0, yvals[-1]], origin='lower', cmap='viridis') 
-        plt.title("Contour Map with Satelite Imagery")
+        plt.grid(False)
+        plt.xlabel('X Offset')
+        plt.ylabel('Y Offset')
+        plt.title("Contour Map")
 
     for seeker in seekers:
         [(seeker_x,seeker_y), z, seeker_orient, seeker_orient_uncertainty] = seekers[seeker]
@@ -551,9 +520,6 @@ def plot_contour(greens = False, levels = 10):
         xs = [seeker_x+z*np.cos(thetas[i]) for i in range(100)]
         ys = [seeker_y+z*np.sin(thetas[i]) for i in range(100)]
         ax.plot(xs,ys,color='red')
-    
-    plt.xlabel("X Coordinate")
-    plt.ylabel("Y Coordinate")
     
     return
 
@@ -1811,7 +1777,7 @@ def plot_energy(situtation_name, seekers=seekers, w=nodes_wide,h=nodes_long, sca
     remaining_battery.pop(0)
 
     # Plot the remaining battery vs step
-    plt.plot(range(len(remaining_battery)), remaining_battery, marker='o', linestyle='-', color='b')
+    plt.bar(range(len(remaining_battery)), remaining_battery, color='b')
 
     # Add labels and title
     plt.xlabel('Step')
@@ -1885,4 +1851,66 @@ def calculateDetection(situation_name):
     no_detection_prob = np.prod([1 - p for p in detectionStep])
     # Return the probability of detection
     return 1 - no_detection_prob
-    
+
+def plot_all(start,end,situation_name,detection=False,w=nodes_wide, h=nodes_long, scale=10):
+    single_field = w*h 
+
+    if detection == True:
+        detection_fields('charging')
+    else:
+        plot_contour()
+
+
+    listOfPaths = ["output_fixed.csv"]#, "output_fixed_det.csv"]#,"output_fixed_even.csv"] 
+    colors = [ 'orangered']#, 'orange']#, 'greenyellow']
+    labels = [ 'Energy']#, 'Detection']#, 'Both']
+
+    addedLabels = []
+
+    for idx, path in enumerate(listOfPaths):
+
+        path = read_XK(start, end, path, w, h)
+        print('Paths Followed:',path)
+
+        
+        for seeker in seekers:
+            [(seeker_x,seeker_y), z, seeker_orient, seeker_orient_uncertainty] = seekers[seeker]
+            # ax.arrow(seeker_x, seeker_y, 2*step_size*np.cos(seeker_orient), 2*step_size*np.sin(seeker_orient), width=step_size/10, head_width=step_size/2, color='red')
+            thetas=np.linspace(0, 2*np.pi,100)
+            xs = [seeker_x+z*np.cos(thetas[i]) for i in range(100)]
+            ys = [seeker_y+z*np.sin(thetas[i]) for i in range(100)]
+            # ax.plot(xs,ys,color='red')
+            
+        "Plot Path"
+        pscale = {'w': 0, 'c': 2, 's': 1}
+        pathx = []
+        pathy = []
+        px = [[], [], []]
+        py = [[], [], []]
+
+        for node in path:
+            node_id = get_node_id_master(node, w, h)
+            node_vec = get_node_vector(node_id, w, h, scale)
+            px[pscale[node_id[0]]].append(node_vec[0])
+            py[pscale[node_id[0]]].append(node_vec[1])
+            pathx.append(node_vec[0])
+            pathy.append(node_vec[1])
+
+        # Plot path
+        for i in range(len(pathx) - 1):
+            segment = (path[i], path[i + 1])
+            plt.plot([pathx[i], pathx[i + 1]], [pathy[i], pathy[i + 1]], 
+                 linewidth=3, color=colors[idx], alpha=1)
+
+        if labels[idx] not in addedLabels:
+            plt.plot([], [], color=colors[idx], label=labels[idx])
+            addedLabels.append(labels[idx])
+
+    plt.xlabel('X Offset')
+    plt.ylabel('Y Offset')
+    plt.title('Energy')
+    plt.grid(False)
+    plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15),
+          fancybox=True, shadow=True, ncol=5)
+    plt.show()
+
