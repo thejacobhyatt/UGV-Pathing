@@ -40,8 +40,8 @@ User Input
 file_path = ''
 file_name=file_path+"Buckner" #map identifier
 desired_lower_left_corner = (0, 0) #Given an image, assuming the bottom left corner is the origin, what is the bottom left corner of the map you want to look at
-desired_upper_right_corner = (100, 100) #Given an image, assuming the bottom left corner is the origin, what is the bottom left corner of the map you want to look at
-step_size=5  #desired distance, in meters, between nodes CANNOT BE TOO LARGE OR WILL CAUSE OverflowError when determining probability
+desired_upper_right_corner = (500, 500) #Given an image, assuming the bottom left corner is the origin, what is the bottom left corner of the map you want to look at
+step_size=10  #desired distance, in meters, between nodes CANNOT BE TOO LARGE OR WILL CAUSE OverflowError when determining probability
 # seekers ={1: [(5,5), 5, 0, seeker_orientation_uncertainty['human']]}
 #seekers={1 : [(25,25), 5, 0, seeker_orientation_uncertainty['human']]} #, 2 : [(100,150), 15, -np.pi/2, seeker_orientation_uncertainty['human']], 3 : [(150,50), 10, 3*np.pi/4, seeker_orientation_uncertainty['bunker']]}
 seekers={1 : [(25,25), 5, 0, seeker_orientation_uncertainty['human']], 
@@ -51,7 +51,7 @@ seekers={1 : [(25,25), 5, 0, seeker_orientation_uncertainty['human']],
          5 : [(400,100), 10, 11*np.pi/6, seeker_orientation_uncertainty['human']],
          6 : [(100,400), 10, 11*np.pi/6, seeker_orientation_uncertainty['human']]}
 
-seekers={1 : [(25,25), 5, 0, seeker_orientation_uncertainty['human']], 2 : [(50,50), 15, -np.pi/2, seeker_orientation_uncertainty['human']]}
+# seekers={1 : [(25,25), 5, 0, seeker_orientation_uncertainty['human']], 2 : [(50,50), 15, -np.pi/2, seeker_orientation_uncertainty['human']]}
 
 # #{seeker ID number : [ (x,y), location uncertanty, orientation, orientation certainty ], next seeker : [...], ...}
 # fog_coef = 0
@@ -1685,6 +1685,7 @@ def plot_path(situtation_name, start, end, seekers=seekers, w=nodes_wide,h=nodes
         detection_fields('charging')
 
     path = read_XK(start, end, "output_"+situtation_name +".csv", w, h)
+    print("here")
     print('Paths Followed:',path)
 
     
@@ -1917,3 +1918,70 @@ def calculateDetection(situation_name):
     no_detection_prob = np.prod([1 - p for p in detectionStep])
     # Return the probability of detection
     return 1 - no_detection_prob
+
+
+   
+def detection_fields(mode_of_travel, seekers=seekers, path=False):
+    '''
+    Plots detection fields of given enemies
+
+    Parameters
+    ----------
+    mode_of_travel : STR
+        'walking', 'sneaking', or 'crawling'
+    perpendicular : BOOL
+        Is seeker moving perpendicular to seekers direct line of sight.
+    plot_node_field : BOOL
+        Plot nodes over given map.
+    seekers : DICT, optional
+        Dictionary of seekers to plot. The default is seekers.
+
+    Returns
+    -------
+    None.
+
+    '''    
+    seeker_groups={templated_seeker : get_seeker_group(seekers[templated_seeker]) for templated_seeker in seekers}
+    xvals=np.linspace(0, desired_map_width,2*nodes_wide-1)
+    yvals=np.linspace(0, desired_map_length,2*nodes_long-1)
+    travel_time = int(step_size/speed_dic[mode_of_travel])
+    detection=[]
+    # checked_locations=0
+
+    
+    coordinates = []
+    energy = []
+
+    with open(csv_file, 'r') as file:
+        csv_reader = csv.reader(file)
+        # Skip header if present
+        next(csv_reader, None)
+        for row in csv_reader:
+            choord, en = (row[1], row[2]), row[5]
+            coordinates.append(choord)
+            energy.append(en)
+
+
+    for y in tqdm(yvals, desc="Progress", position=0, leave=True):
+        detection.append([])
+        for x in xvals:
+            
+
+            detection[-1].append(cost)
+    plt.clf()
+    plt.style.use('ggplot')
+    fig, ax= plt.subplots()
+    im = ax.imshow(detection, extent=[0, xvals[-1], 0, yvals[-1]],vmin=0,vmax=1,
+                    origin='lower', cmap='viridis')       
+
+    # cb_ax = fig.add_axes([0.83, 0.3, 0.02, 0.4])
+    # fig.colorbar(im, cax=cb_ax, label="Detection Probability")
+
+    fig.colorbar(im, label="Energy Cost")
+    plt.xlabel('X Offset')
+    plt.ylabel('Y Offset')
+    plt.grid(False)
+    plt.title("Energy Field")
+    
+    
+    return     
