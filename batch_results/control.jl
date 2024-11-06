@@ -61,8 +61,8 @@ end
 
 function two_step_en(w,h,s,f,A,N,d,t,E,tris,τ,inflow,outflow, alpha, beta)
     m = Model(() -> Gurobi.Optimizer(GRB_ENV));
-    MAXTIME=600
-    set_optimizer_attributes(m, "TimeLimit" => MAXTIME, "MIPGap" => 1e-4, "OutputFlag" => 0);
+    MAXTIME=300
+    set_optimizer_attributes(m, "TimeLimit" => MAXTIME, "MIPGap" => 1e-3, "OutputFlag" => 0);
     @variable(m, x[1:A], Bin)
     @variable(m, batteryLevel[1:A] >= 0) # battery level at each step
     @objective(m, Min, alpha*sum(d[i]*x[i] for i in 1:A) + beta*(sum(E[i]*x[i] for i in 1:A)))

@@ -308,7 +308,7 @@ def read_XK(start, end, file_name, w, h):
     return PATH
 
 def create_title(file_name):
-    match = re.match(r"output_test_(\d+\.\d+)_(\d+\.\d+)\.csv", file_name)
+    match = re.match(r"output_batch_(\d+\.\d+)_(\d+\.\d+)\.csv", file_name)
 
     # Extract alpha and beta values
     alpha = match.group(1)
@@ -450,8 +450,8 @@ def main(start, end):
         print(file)
    
     # with all of the paths that is in the folder
-    for file in csv_files:
-        plot_path(file, start, end, seekers=seekers, w=nodes_wide,h=nodes_long, scale=10, save=False)
+    # for file in csv_files:
+    #     plot_path(csv_files, start, end, seekers=seekers, w=nodes_wide,h=nodes_long, scale=10, save=False)
     
     plot_all(csv_files, start,end, detection=False,w=nodes_wide, h=nodes_long, scale=10)
 
