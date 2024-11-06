@@ -1680,9 +1680,10 @@ def plot_sattelite():
 def plot_path(situtation_name, start, end, seekers=seekers, w=nodes_wide,h=nodes_long, scale=10, detection=False):
     single_field = w*h 
 
-    plot_contour()
+    plot_contour(greens=True)
     if detection == True:
         detection_fields('charging')
+    
 
     path = read_XK(start, end, "output_"+situtation_name +".csv", w, h)
     print("here")

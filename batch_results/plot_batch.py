@@ -267,7 +267,7 @@ def csv_to_dict(csv_file):
             data_dict[key] = values
     return data_dict
   
-def read_XK(start, end, file_name, w, h):
+def read_XK(start, end, file_name):
     """
     Reads 'output.csv' and returns the optimal path in terms of nodes
 
@@ -291,9 +291,9 @@ def read_XK(start, end, file_name, w, h):
 
     visited = []
     PATH = [start]
-
-    # print(unsorted_path)
-
+    
+    print(unsorted_path)
+    print(file_name)
     while PATH[-1] != end:
         for node_pair in unsorted_path:
             sn = node_pair[0]
@@ -301,10 +301,11 @@ def read_XK(start, end, file_name, w, h):
     
 
             if int(sn) == PATH[-1] and node_pair not in visited:
-                #print("Current node pair:", node_pair)
+                # print("Current node pair:", node_pair)
                 PATH.append(int(en))
                 visited.append(node_pair)
                 break
+    
     return PATH
 
 def create_title(file_name):
@@ -321,7 +322,7 @@ def create_title(file_name):
 def plot_path(file_name, start, end, seekers=seekers, w=nodes_wide,h=nodes_long, scale=10, save=False):
     single_field = w*h 
     plot_contour()
-    path = read_XK(start, end, file_name, w, h)
+    path = read_XK(start, end, file_name)
 
     print('Paths Followed:',path)
 
@@ -374,12 +375,14 @@ def plot_path(file_name, start, end, seekers=seekers, w=nodes_wide,h=nodes_long,
     plt.title(output_string)
     plt.grid(True)
     plt.legend()
-    plt.show()
+    
 
     if save:
-        plt.savefig(f"{output_string}.png", dpi=300)  # Save as PNG with high resolution (300 dpi)
+        plt.savefig(f"{file_name[:-4]}.png", dpi=300)  # Save as PNG with high resolution (300 dpi)
+    else:
+        plt.show()
 
-def plot_all(listOfPaths, start,end, detection=False,w=nodes_wide, h=nodes_long, scale=10):
+def plot_all(listOfPaths, start,end,w=nodes_wide, h=nodes_long, scale=10):
     single_field = w*h 
     plot_contour()
 
@@ -395,15 +398,13 @@ def plot_all(listOfPaths, start,end, detection=False,w=nodes_wide, h=nodes_long,
 
     for idx, path in enumerate(listOfPaths):
 
-        path = read_XK(start, end, path, w, h)
+        path = read_XK(start, end, path)
         
         for seeker in seekers:
             [(seeker_x,seeker_y), z, seeker_orient, seeker_orient_uncertainty] = seekers[seeker]
-            # ax.arrow(seeker_x, seeker_y, 2*step_size*np.cos(seeker_orient), 2*step_size*np.sin(seeker_orient), width=step_size/10, head_width=step_size/2, color='red')
             thetas=np.linspace(0, 2*np.pi,100)
             xs = [seeker_x+z*np.cos(thetas[i]) for i in range(100)]
             ys = [seeker_y+z*np.sin(thetas[i]) for i in range(100)]
-            # ax.plot(xs,ys,color='red')
             
         "Plot Path"
         pscale = {'w': 0, 'c': 2, 's': 1}
@@ -432,7 +433,7 @@ def plot_all(listOfPaths, start,end, detection=False,w=nodes_wide, h=nodes_long,
 
     plt.xlabel('X Offset')
     plt.ylabel('Y Offset')
-    plt.title('Energy')
+    plt.title('All in Overlay')
     plt.grid(False)
     plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15),
           fancybox=True, shadow=True, ncol=5)
@@ -446,17 +447,18 @@ def main(start, end):
                 and 'output' in f.lower()]
     
     # Print each CSV file name
+    print(len(csv_files))
     for file in csv_files:
         print(file)
    
     # with all of the paths that is in the folder
     # for file in csv_files:
-    #     plot_path(csv_files, start, end, seekers=seekers, w=nodes_wide,h=nodes_long, scale=10, save=False)
+    #     plot_path(file, start, end, seekers=seekers, w=nodes_wide,h=nodes_long, scale=10, save=True)
     
-    plot_all(csv_files, start,end, detection=False,w=nodes_wide, h=nodes_long, scale=10)
+    plot_all(csv_files, start,end,w=nodes_wide, h=nodes_long, scale=10)
 
 if __name__ == "__main__":
     start = 1
     end = 2601
-
+    
     main(start, end)
