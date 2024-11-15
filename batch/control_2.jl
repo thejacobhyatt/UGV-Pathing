@@ -14,7 +14,7 @@ N=w*h*2;
 A = 45602
 
 
-dir2 = "Robot Pathing/";
+dir2 = "batch/";
 
 wh_string=string(w)*"_"*string(h)
 arcs_file="arcs_"*wh_string*"_"*scenario_name*".csv";
@@ -61,8 +61,8 @@ end
 
 function two_step_en(w,h,s,f,A,N,d,t,E,tris,τ,inflow,outflow, alpha, beta)
     m = Model(() -> Gurobi.Optimizer(GRB_ENV));
-    MAXTIME=300
-    set_optimizer_attributes(m, "TimeLimit" => MAXTIME, "MIPGap" => 1e-3, "OutputFlag" => 0);
+    MAXTIME=120
+    set_optimizer_attributes(m, "TimeLimit" => MAXTIME, "MIPGap" => 1e-2, "OutputFlag" => 0);
     @variable(m, x[1:A], Bin)
     @variable(m, batteryLevel[1:A] >= 0) # battery level at each step
     @objective(m, Min, alpha*sum(d[i]*x[i] for i in 1:A) + beta*(sum(E[i]*x[i] for i in 1:A)))
@@ -111,10 +111,10 @@ function write_path(opt_path, A, file_name)
     CSV.write(file_name, path_output3); 
 end
 
-step = 0.025
+step = 0.005
 
 @time begin
-    for i in 0:step:1
+    for i in 0:step:.05
         alpha = i
         beta = 1  # This makes beta go in the opposite direction of alpha
             # Convert alpha and beta to strings and format the file name
