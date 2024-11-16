@@ -321,6 +321,7 @@ def create_title(file_name):
 
 def plot_path(file_name, start, end, seekers=seekers, w=nodes_wide,h=nodes_long, scale=10, save=False):
     single_field = w*h 
+    print('here')
     plot_contour()
     path = read_XK(start, end, file_name)
 
@@ -457,8 +458,72 @@ def main(start, end):
     
     plot_all(csv_files, start,end,w=nodes_wide, h=nodes_long, scale=10)
 
+
+def plot_path_one(file_name, start, end, seekers=seekers, w=nodes_wide,h=nodes_long, scale=10, save=False):
+    single_field = w*h 
+    print('here')
+    plot_contour()
+    path = read_XK(start, end, file_name)
+
+    print('Paths Followed:',path)
+
+    for seeker in seekers:
+        [(seeker_x,seeker_y), z, seeker_orient, seeker_orient_uncertainty] = seekers[seeker]
+        thetas=np.linspace(0, 2*np.pi,100)
+        xs = [seeker_x+z*np.cos(thetas[i]) for i in range(100)]
+        ys = [seeker_y+z*np.sin(thetas[i]) for i in range(100)]
+        
+    "Plot Path"
+    pscale = {'w': 0, 'c': 2, 's': 1}
+    pathx = []
+    pathy = []
+    px = [[], [], []]
+    py = [[], [], []]
+
+    for node in path:
+        node_id = get_node_id_master(node, w, h)
+        node_vec = get_node_vector(node_id, w, h, scale)
+        px[pscale[node_id[0]]].append(node_vec[0])
+        py[pscale[node_id[0]]].append(node_vec[1])
+        pathx.append(node_vec[0])
+        pathy.append(node_vec[1])
+
+    # Plot path
+
+
+    for i in range(len(pathx) - 1):
+    # Check if the segment is in the special set
+        segment = (path[i], path[i + 1])
+        # print(path[i])
+        if (path[i] > single_field) or (path[i]+1 > single_field):
+            color = 'green'
+        else:
+            color = 'black'
+        
+    # Line Segments
+        plt.plot([pathx[i], pathx[i + 1]], [pathy[i], pathy[i + 1]], color=color, linewidth=3)
+
+    # Create Title        
+        
+    plt.plot([], [], color='green', label='charging')  # Placeholder for legend
+    plt.plot([], [], color='black', label='charged')
+
+    plt.xlabel('X coordinate')
+    plt.ylabel('Y coordinate')
+    plt.title(file_name)
+    plt.grid(True)
+    plt.legend()
+    
+
+    if save:
+        plt.savefig(f"{file_name}.png", dpi=300)  # Save as PNG with high resolution (300 dpi)
+    else:
+        plt.show()
+
 if __name__ == "__main__":
     start = 1
     end = 2601
+
+    plot_path_one('output_fixed.csv', start, end)
     
-    main(start, end)
+    # main(start, end)
