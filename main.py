@@ -38,7 +38,7 @@ User Input
 """
 #Relative PATH in GitHub Project
 file_path = ''
-file_name=file_path+"Buckner" #map identifier
+file_name=file_path+"FI" #map identifier
 desired_lower_left_corner = (0, 0) #Given an image, assuming the bottom left corner is the origin, what is the bottom left corner of the map you want to look at
 desired_upper_right_corner = (500, 500) #Given an image, assuming the bottom left corner is the origin, what is the bottom left corner of the map you want to look at
 step_size=10  #desired distance, in meters, between nodes CANNOT BE TOO LARGE OR WILL CAUSE OverflowError when determining probability
