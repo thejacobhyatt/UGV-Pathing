@@ -20,7 +20,7 @@ from exenf_alog import exenf_cost
 import heapq
 
 
-csv_file = "arcs_51_51_fixed.csv"
+csv_file = "arcs_51_51_FI_test.csv"
 initial_battery = 10000
 """
 -------------------------------------------------------------------------------
@@ -1921,68 +1921,3 @@ def calculateDetection(situation_name):
     return 1 - no_detection_prob
 
 
-   
-def detection_fields(mode_of_travel, seekers=seekers, path=False):
-    '''
-    Plots detection fields of given enemies
-
-    Parameters
-    ----------
-    mode_of_travel : STR
-        'walking', 'sneaking', or 'crawling'
-    perpendicular : BOOL
-        Is seeker moving perpendicular to seekers direct line of sight.
-    plot_node_field : BOOL
-        Plot nodes over given map.
-    seekers : DICT, optional
-        Dictionary of seekers to plot. The default is seekers.
-
-    Returns
-    -------
-    None.
-
-    '''    
-    seeker_groups={templated_seeker : get_seeker_group(seekers[templated_seeker]) for templated_seeker in seekers}
-    xvals=np.linspace(0, desired_map_width,2*nodes_wide-1)
-    yvals=np.linspace(0, desired_map_length,2*nodes_long-1)
-    travel_time = int(step_size/speed_dic[mode_of_travel])
-    detection=[]
-    # checked_locations=0
-
-    
-    coordinates = []
-    energy = []
-
-    with open(csv_file, 'r') as file:
-        csv_reader = csv.reader(file)
-        # Skip header if present
-        next(csv_reader, None)
-        for row in csv_reader:
-            choord, en = (row[1], row[2]), row[5]
-            coordinates.append(choord)
-            energy.append(en)
-
-
-    for y in tqdm(yvals, desc="Progress", position=0, leave=True):
-        detection.append([])
-        for x in xvals:
-            
-
-            detection[-1].append(cost)
-    plt.clf()
-    plt.style.use('ggplot')
-    fig, ax= plt.subplots()
-    im = ax.imshow(detection, extent=[0, xvals[-1], 0, yvals[-1]],vmin=0,vmax=1,
-                    origin='lower', cmap='viridis')       
-
-    # cb_ax = fig.add_axes([0.83, 0.3, 0.02, 0.4])
-    # fig.colorbar(im, cax=cb_ax, label="Detection Probability")
-
-    fig.colorbar(im, label="Energy Cost")
-    plt.xlabel('X Offset')
-    plt.ylabel('Y Offset')
-    plt.grid(False)
-    plt.title("Energy Field")
-    
-    
-    return     
