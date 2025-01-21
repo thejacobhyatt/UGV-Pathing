@@ -20,7 +20,7 @@ from exenf_alog import exenf_cost
 import heapq
 
 
-csv_file = "arcs_51_51_FI_test.csv"
+csv_file = "arcs_51_51_fixed.csv"
 initial_battery = 10000
 """
 -------------------------------------------------------------------------------
@@ -38,14 +38,19 @@ User Input
 """
 #Relative PATH in GitHub Project
 file_path = ''
-file_name=file_path+"FI" #map identifier
+file_name=file_path+"Buckner" #map identifier
 desired_lower_left_corner = (0, 0) #Given an image, assuming the bottom left corner is the origin, what is the bottom left corner of the map you want to look at
 desired_upper_right_corner = (500, 500) #Given an image, assuming the bottom left corner is the origin, what is the bottom left corner of the map you want to look at
 step_size=10  #desired distance, in meters, between nodes CANNOT BE TOO LARGE OR WILL CAUSE OverflowError when determining probability
 # seekers ={1: [(5,5), 5, 0, seeker_orientation_uncertainty['human']]}
-#seekers={1 : [(25,25), 5, 0, seeker_orientation_uncertainty['human']]} #, 2 : [(100,150), 15, -np.pi/2, seeker_orientation_uncertainty['human']], 3 : [(150,50), 10, 3*np.pi/4, seeker_orientation_uncertainty['bunker']]}
-seekers={ 1 : [(250,250), 15, -np.pi/2, seeker_orientation_uncertainty['human']]}
-
+#seekers={1 : [(25,25), 5, 0, seeker_orientation_uncertainty['human']], 2 : [(100,150), 15, -np.pi/2, seeker_orientation_uncertainty['human']], 3 : [(150,50), 10, 3*np.pi/4, seeker_orientation_uncertainty['bunker']]}
+#seekers={ 1 : [(250,250), 15, -np.pi/2, seeker_orientation_uncertainty['human']]}
+seekers={1 : [(25,25), 5, 0, seeker_orientation_uncertainty['human']], 
+         2 : [(100,150), 15, -np.pi/2, seeker_orientation_uncertainty['human']], 
+         3 : [(150,50), 10, 3*np.pi/4, seeker_orientation_uncertainty['bunker']], 
+         4 : [(300,300), 10, 3*np.pi/4, seeker_orientation_uncertainty['bunker']],
+         5 : [(400,100), 10, 11*np.pi/6, seeker_orientation_uncertainty['human']],
+         6 : [(100,400), 10, 11*np.pi/6, seeker_orientation_uncertainty['human']]}
 # seekers={1 : [(25,25), 5, 0, seeker_orientation_uncertainty['human']], 2 : [(50,50), 15, -np.pi/2, seeker_orientation_uncertainty['human']]}
 
 # #{seeker ID number : [ (x,y), location uncertanty, orientation, orientation certainty ], next seeker : [...], ...}
@@ -1675,7 +1680,9 @@ def plot_sattelite():
 def plot_path(situtation_name, start, end, seekers=seekers, w=nodes_wide,h=nodes_long, scale=10, detection=False):
     single_field = w*h 
 
-    plot_contour(greens=True)
+    plot_contour(greens=False)
+    # plot_sattelite()
+
     if detection == True:
         detection_fields('charging')
     
