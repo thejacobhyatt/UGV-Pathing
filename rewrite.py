@@ -40,7 +40,7 @@ class Node():
         self.z = z
         self.e = e
         self.v = v
-        self.neighbors = []
+        self.neighbors = {}
 
     def get_elevation(self):
         self.e = (elevation_map[self.x,self.y][0]/255)*MAX_ELEVATION // 1
@@ -53,7 +53,10 @@ class Node():
     
     def __repr__(self):
         return str(self)
-    
+
+class Arc():
+    def __init__(self):
+        pass
     
 
 def setup(rows, cols):
@@ -79,7 +82,12 @@ def setup(rows, cols):
 # elevation= (elevation_map.getpixel((x*map_width_scale,y*map_length_scale))[0]/255)*max_elevation
 
 def display_grid(super_grid, img=None):
-    """Displays the grid over the image."""
+    """_summary_
+
+    Args:
+        super_grid (numpy.array): _description_
+        img (image name, optional): _description_. Defaults to None.
+    """
     if img is not None:
         plt.imshow(img)
     
