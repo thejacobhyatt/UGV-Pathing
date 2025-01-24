@@ -6,19 +6,20 @@ import os
 
 # Constants 
 SITUATION = "Buckner"
-SPACING = 10
+SPACING = 50
+MAX_ELEVATION = 603
 
 # Load in Images
 cwd = os.getcwd()
 sat_path = os.path.join(cwd, 'imagery', SITUATION+'.png')
-sat = np.asarray(Image.open(sat_path))
+sat_map = np.asarray(Image.open(sat_path))
 elevation_path = os.path.join(cwd, 'imagery', SITUATION+'_DEM.png')
-elevation = np.asarray(Image.open(elevation_path))
+elevation_map = np.asarray(Image.open(elevation_path))
 vegetation_path = os.path.join(cwd, 'imagery', SITUATION+'_NDVI.png')
-vegetation = np.asarray(Image.open(vegetation_path))
+vegetation_map = np.asarray(Image.open(vegetation_path))
 
 # Derived Constants
-l, w, h = sat.shape
+l, w, h = sat_map.shape
 rows = l // SPACING
 cols = w // SPACING
 buffer = SPACING // 2
@@ -41,6 +42,20 @@ class Node():
         self.v = v
         self.neighbors = []
 
+    def get_elevation(self):
+        self.e = (elevation_map[self.x,self.y][0]/255)*MAX_ELEVATION // 1
+
+    def get_vegetation(self):
+        self.v = round((3 - 3*(vegetation_map[self.x,self.y][0]/255)), 3)
+
+    def __str__(self):
+        return f"Node({self.x}, {self.y}, {self.e}, {self.v})"
+    
+    def __repr__(self):
+        return str(self)
+    
+    
+
 def setup(rows, cols):
     """creates 3D grid of nodes with all attributes neccesary for cost functions
 
@@ -55,7 +70,10 @@ def setup(rows, cols):
     for j in range(rows):
         for i in range(cols):
             for z in range(2):
-                grid[j][i][z] = Node(buffer + i * SPACING,buffer + j * SPACING)
+                node =  Node(buffer + i * SPACING,buffer + j * SPACING)
+                node.get_elevation()
+                node.get_vegetation()
+                grid[j][i][z] = node
     return grid
 
 # elevation= (elevation_map.getpixel((x*map_width_scale,y*map_length_scale))[0]/255)*max_elevation
@@ -76,4 +94,4 @@ def display_grid(super_grid, img=None):
 super_grid = setup(rows, cols)
 print(super_grid)
 # Display grid
-display_grid(super_grid, sat)
+display_grid(super_grid, elevation_map)
