@@ -9,10 +9,10 @@ cwd = os.getcwd()
 image_path = os.path.join(cwd, 'imagery', 'Buckner.png')
 img = np.asarray(Image.open(image_path))
 l, w, h = img.shape
-spacing = 10
+spacing = 30
 rows = l // spacing
 cols = w // spacing
-buffer = 5
+buffer = spacing // 2
 
 class Node():
     def __init__(self, x, y, z=0, e=0, v=0):
@@ -33,42 +33,38 @@ class Node():
         self.neighbors = []
 
 def setup(rows, cols):
-    """Initializes the grid with Node objects."""
-    grid = [[None for _ in range(cols)] for _ in range(rows)]
+    """creates 3D grid of nodes with all attributes neccesary for cost functions
+
+    Args:
+        rows (_type_): _description_
+        cols (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    grid = [[[None for _ in range(2)] for _ in range(cols)] for _ in range(rows)]
     for j in range(rows):
         for i in range(cols):
-            grid[j][i] = Node(buffer + i * spacing,buffer + j * spacing)
+            for z in range(2):
+                grid[j][i][z] = Node(buffer + i * spacing,buffer + j * spacing)
     return grid
 
-def add_neighbors(grid):
-    """Connects nodes to their neighbors."""
-    rows = len(grid)
-    cols = len(grid[0])
-    for j in range(rows):
-        for i in range(cols):
-            node = grid[j][i]
-            if i > 0:  # Left neighbor
-                node.neighbors.append(grid[j][i-1])
-            if i < cols-1:  # Right neighbor
-                node.neighbors.append(grid[j][i+1])
-            if j > 0:  # Top neighbor
-                node.neighbors.append(grid[j-1][i])
-            if j < rows-1:  # Bottom neighbor
-                node.neighbors.append(grid[j+1][i])
+# elevation= (elevation_map.getpixel((x*map_width_scale,y*map_length_scale))[0]/255)*max_elevation
 
-def display_grid(grid, img=None):
+def display_grid(super_grid, img=None):
     """Displays the grid over the image."""
     if img is not None:
         plt.imshow(img)
-    for row in grid:
-        for node in row:
-            plt.scatter(node.x, node.y, color="black", s=10)
+    
+    for grid in super_grid:
+        for row in grid:
+            for node in row:
+                plt.scatter(node.x, node.y, color="black", s=10)
     plt.show()
 
 
 # Setup grid and neighbors
-grid = setup(rows, cols)
-add_neighbors(grid)
-
+super_grid = setup(rows, cols)
+print(super_grid)
 # Display grid
-display_grid(grid, img)
+display_grid(super_grid, img)
