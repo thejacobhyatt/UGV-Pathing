@@ -4,15 +4,24 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import os
 
-# Grid dimensions
+# Constants 
+SITUATION = "Buckner"
+SPACING = 10
+
+# Load in Images
 cwd = os.getcwd()
-image_path = os.path.join(cwd, 'imagery', 'Buckner.png')
-img = np.asarray(Image.open(image_path))
-l, w, h = img.shape
-spacing = 30
-rows = l // spacing
-cols = w // spacing
-buffer = spacing // 2
+sat_path = os.path.join(cwd, 'imagery', SITUATION+'.png')
+sat = np.asarray(Image.open(sat_path))
+elevation_path = os.path.join(cwd, 'imagery', SITUATION+'_DEM.png')
+elevation = np.asarray(Image.open(elevation_path))
+vegetation_path = os.path.join(cwd, 'imagery', SITUATION+'_NDVI.png')
+vegetation = np.asarray(Image.open(vegetation_path))
+
+# Derived Constants
+l, w, h = sat.shape
+rows = l // SPACING
+cols = w // SPACING
+buffer = SPACING // 2
 
 class Node():
     def __init__(self, x, y, z=0, e=0, v=0):
@@ -46,7 +55,7 @@ def setup(rows, cols):
     for j in range(rows):
         for i in range(cols):
             for z in range(2):
-                grid[j][i][z] = Node(buffer + i * spacing,buffer + j * spacing)
+                grid[j][i][z] = Node(buffer + i * SPACING,buffer + j * SPACING)
     return grid
 
 # elevation= (elevation_map.getpixel((x*map_width_scale,y*map_length_scale))[0]/255)*max_elevation
@@ -67,4 +76,4 @@ def display_grid(super_grid, img=None):
 super_grid = setup(rows, cols)
 print(super_grid)
 # Display grid
-display_grid(super_grid, img)
+display_grid(super_grid, sat)
