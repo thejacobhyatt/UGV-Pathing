@@ -6,7 +6,7 @@ import os
 
 # Constants 
 SITUATION = "Buckner"
-SPACING = 50
+SPACING = 35
 MAX_ELEVATION = 603
 
 # Load in Images
@@ -43,13 +43,13 @@ class Node():
         self.neighbors = {}
 
     def get_elevation(self):
-        self.e = (elevation_map[self.x,self.y][0]/255)*MAX_ELEVATION // 1
+        self.e = round((elevation_map[self.x,self.y][0]/255)*MAX_ELEVATION,1)
 
     def get_vegetation(self):
         self.v = round((3 - 3*(vegetation_map[self.x,self.y][0]/255)), 3)
 
     def __str__(self):
-        return f"Node({self.x}, {self.y}, {self.e}, {self.v})"
+        return f"Node({self.x}, {self.y}, {self.z}, {self.e}, {self.v})"
     
     def __repr__(self):
         return str(self)
@@ -70,16 +70,16 @@ def setup(rows, cols):
         _type_: _description_
     """
     grid = [[[None for _ in range(2)] for _ in range(cols)] for _ in range(rows)]
+    print(grid)
     for j in range(rows):
         for i in range(cols):
             for z in range(2):
-                node =  Node(buffer + i * SPACING,buffer + j * SPACING)
+                node =  Node(buffer + i * SPACING,buffer + j * SPACING, z)
                 node.get_elevation()
                 node.get_vegetation()
                 grid[j][i][z] = node
     return grid
 
-# elevation= (elevation_map.getpixel((x*map_width_scale,y*map_length_scale))[0]/255)*max_elevation
 
 def display_grid(super_grid, img=None):
     """_summary_
@@ -94,7 +94,7 @@ def display_grid(super_grid, img=None):
     for grid in super_grid:
         for row in grid:
             for node in row:
-                plt.scatter(node.x, node.y, color="black", s=10)
+                plt.scatter(node.x, node.y, color="black", s=5)
     plt.show()
 
 
