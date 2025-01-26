@@ -61,28 +61,29 @@ class Node():
         """Find neighbors in all cardinal and diagonal directions and the corresponding node in the opposite grid."""
         neighbors = []
         directions = [
-            (0, 1),   # Down
-            (0, -1),  # Up
             (1, 0),   # Right
-            
-            (-1, 0),  # Left
             (1, 1),   # Down-right
+            (0, 1),   # Down
+            (-1, 1),   # Up-right
+            (-1, 0),  # Left
             (-1, -1), # Up-left
-            (1, -1),  # Down-left
-            (-1, 1)   # Up-right
+            (0, -1),  # Up
+            (1, -1)  # Down-left
         ]
 
-        # Same grid neighbors
+        # Create Neighbor
         for dx, dy in directions:
-            nx, ny = self.row + dx, self.col + dy
+            nx, ny = self.col + dx, self.row + dy
             if 0 <= nx < rows and 0 <= ny < cols:
-                neighbors.append(grid[self.z][ny][nx])
+                # Avoid including the current node itself as a neighbor
+                if nx != self.col or ny != self.row:  # Check if it's not the current node
+                    neighbors.append(grid[self.z][ny][nx])
 
-        # Opposite grid neighbor
+        # Add Vertical Neighbor
         if self.z == 1: 
-            neighbors.append(grid[0][self.col][self.row])
+            neighbors.append(grid[0][self.row][self.col])
         else:
-            neighbors.append(grid[1][self.col][self.row])
+            neighbors.append(grid[1][self.row][self.col])
 
         return neighbors
 
@@ -107,8 +108,6 @@ class Node():
             mode_of_travel='charging'
             movement_code=1
 
-
-
         # Risk level (placeholder logic for visual/audio detection)
         visual_detection = 0.5  # Replace with `get_visual_detection`
         audio_detection = 0.3  # Replace with `get_audio_detection`
@@ -123,10 +122,9 @@ class Node():
         elif mode_of_travel == 'charged':
             energy_cost = 150
 
-
         return [risk_level, travel_time, energy_cost, movement_code]
 
-    def direction_of_travel(initial_point, final_point, math):
+    def direction_of_travel(initial_point, final_point):
         x1, y1, _ = initial_point
         x2, y2, _ = final_point
         
@@ -154,17 +152,6 @@ class Node():
         row = int((y - buffer) / spacing)
         return row, col
 
-class Arc():
-    def __init__(self, arc_id, node_from, node_to, properties):
-        """Arc class to store connection information between nodes."""
-        self.arc_id = arc_id
-        self.node_from = node_from
-        self.node_to = node_to
-        self.properties = properties
-
-    def __repr__(self):
-        return f"Arc({self.arc_id}, from: {self.node_from.id}, to: {self.node_to.id})"
-
 def setup(rows, cols):
     """creates 3D grid of nodes with all attributes neccesary for cost functions
 
@@ -180,14 +167,16 @@ def setup(rows, cols):
     grid = [top_grid, bottom_grid]
     node_id = 1
 
-    for z in range(len(grid)):  # Iterate over the top and bottom grids
-        for j in range(rows):
-            for i in range(cols):
+    # Iterate over the top and bottom grids
+    for z in range(len(grid)):  # Iterate over the two grids (top and bottom)
+        for j in range(rows):  # Iterate over rows
+            for i in range(cols):  # Iterate over columns
+                # Create a node with a unique ID and appropriate position
                 node = Node(node_id, buffer + i * SPACING, buffer + j * SPACING, z)
-                node.get_elevation()
-                node.get_vegetation()
+                node.get_elevation()  # Assuming this method gets elevation data
+                node.get_vegetation()  # Assuming this method gets vegetation data
                 grid[z][j][i] = node  # Assign the node to the appropriate grid and position
-                node_id += 1
+                node_id += 1  # Increment the node ID for the next node
     return grid
 
 def get_arcs(grid):
@@ -226,5 +215,8 @@ def display_grid(super_grid, img=None):
 # Setup grid and neighbors
 super_grid = setup(rows, cols)
 arc_dictionary = get_arcs(super_grid)
-print(arc_dictionary)
+for key, value in arc_dictionary.items():
+    print(f"{key}, {value}")
+
+# print(super_grid[1][2][2])
 # display_grid(super_grid, sat_map)
