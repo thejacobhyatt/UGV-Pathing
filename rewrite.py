@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
 import os
+from exenf_alog import direction_of_travel, exenf_cost
 
 # Constants 
 SITUATION = "Buckner"
@@ -25,7 +26,7 @@ cols = w // SPACING
 buffer = SPACING // 2
 
 class Node():
-    def __init__(self, x, y, z=0, e=0, v=0):
+    def __init__(self, node_id, x, y, z=0, e=0, v=0):
         """Node class for pathfinding algorithm
 
         Args:
@@ -35,6 +36,7 @@ class Node():
             e (float): elevation at that node
             v (float): vegetation value at that node
         """
+        self.id = node_id
         self.x = x
         self.y = y
         self.z = z
@@ -42,7 +44,7 @@ class Node():
         self.v = v
         self.neighbors = {}
 
-        self.rows,self.cols = self.position_to_grid(self.x, self.y)
+        self.row,self.col = self.position_to_grid(self.x, self.y)
 
     def get_elevation(self):
         self.e = round((elevation_map[self.x,self.y][0]/255)*MAX_ELEVATION,1)
@@ -66,24 +68,45 @@ class Node():
 
         # Same grid neighbors
         for dx, dy in directions:
-            nx, ny = self.rows + dx, self.cols + dy
+            nx, ny = self.row + dx, self.col + dy
             if 0 <= nx < rows and 0 <= ny < cols:
                 neighbors.append(grid[self.z][ny][nx])
 
         # Opposite grid neighbor
         if self.z == 1: 
-            neighbors.append(grid[0][self.cols][self.rows])
-        else: 
-            neighbors.append(grid[1][self.cols][self.rows])
+            neighbors.append(grid[0][self.col][self.row])
+        else:
+            neighbors.append(grid[1][self.col][self.row])
 
         return neighbors
+    
+    def find_arc_values(self, neighbors):
+        """Calculate arc values between this node and its neighbors."""
+        arc_values = {}
+        for neighbor in neighbors:
+            if neighbor is None:
+                continue
+            
+            # Example arc cost calculation
+            distance = math.sqrt((self.x - neighbor.x) ** 2 + (self.y - neighbor.y) ** 2)
+            elevation_diff = abs(self.elevation - neighbor.elevation)
+            vegetation_cost = (self.vegetation + neighbor.vegetation) / 2
+
+            # Combine factors (example weighting)
+            arc_cost = distance + 0.5 * elevation_diff + 0.2 * vegetation_cost
+            arc_values[neighbor] = arc_cost
+
+        return arc_values
 
     def __str__(self):
-        return f"Node({self.x}, {self.y}, {self.z}, {self.e}, {self.v})"
+        return f"{self.id}"
     
     def __repr__(self):
         return str(self)
     
+    def __iter__(self):
+        return [arc_ID, node_i, node_j, risk, time, energy_level, movement_code]
+
     @staticmethod
     def position_to_grid(x, y, buffer=buffer, spacing=SPACING):
         """Convert x, y coordinates to grid row and column indices."""
@@ -109,14 +132,16 @@ def setup(rows, cols):
     top_grid = [[None for _ in range(1) for _ in range(cols)] for _ in range(rows)]
     bottom_grid = [[None for _ in range(1) for _ in range(cols)] for _ in range(rows)]
     grid = [top_grid, bottom_grid]
+    node_id = 1
 
     for z in range(len(grid)):  # Iterate over the top and bottom grids
         for j in range(rows):
             for i in range(cols):
-                node = Node(buffer + i * SPACING, buffer + j * SPACING, z)
+                node = Node(node_id, buffer + i * SPACING, buffer + j * SPACING, z)
                 node.get_elevation()
                 node.get_vegetation()
                 grid[z][j][i] = node  # Assign the node to the appropriate grid and position
+                node_id += 1
     return grid
 
 

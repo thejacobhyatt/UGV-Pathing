@@ -37,7 +37,7 @@ User Input
 -------------------------------------------------------------------------------
 """
 #Relative PATH in GitHub Project
-file_path = ''
+file_path = '.\\'
 file_name=file_path+"Buckner" #map identifier
 desired_lower_left_corner = (0, 0) #Given an image, assuming the bottom left corner is the origin, what is the bottom left corner of the map you want to look at
 desired_upper_right_corner = (500, 500) #Given an image, assuming the bottom left corner is the origin, what is the bottom left corner of the map you want to look at
@@ -105,6 +105,8 @@ map_length_scale=(map_length_pixels-1)/desired_map_length #calculate scaling fac
 nodes_wide=int(desired_map_length/step_size)+1 #how many node columns
 nodes_long=int(desired_map_length/step_size)+1 #how many node rows
 
+nodes_wide = 3
+nodes_long = 3
 
 chance_snow = 0
 chance_rain = 0 
