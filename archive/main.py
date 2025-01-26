@@ -37,7 +37,7 @@ User Input
 -------------------------------------------------------------------------------
 """
 #Relative PATH in GitHub Project
-file_path = '.\\'
+file_path = '.\\archive\\'
 file_name=file_path+"Buckner" #map identifier
 desired_lower_left_corner = (0, 0) #Given an image, assuming the bottom left corner is the origin, what is the bottom left corner of the map you want to look at
 desired_upper_right_corner = (500, 500) #Given an image, assuming the bottom left corner is the origin, what is the bottom left corner of the map you want to look at
@@ -1925,3 +1925,4 @@ def calculateDetection(situation_name):
     return 1 - no_detection_prob
 
 
+write_csv_files('3x3')

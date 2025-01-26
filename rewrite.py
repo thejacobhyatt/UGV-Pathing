@@ -11,7 +11,7 @@ from exenf_alog import direction_of_travel, exenf_cost
 
 # Constants 
 SITUATION = "Buckner"
-SPACING = 35
+SPACING = 40
 MAX_ELEVATION = 603
 
 # Load in Images
@@ -28,6 +28,7 @@ l, w, h = sat_map.shape
 rows = l // SPACING
 cols = w // SPACING
 buffer = SPACING // 2
+N = rows * cols * 2
 
 class Node():
     def __init__(self, node_id, x, y, z=0, e=0, v=0):
@@ -61,8 +62,9 @@ class Node():
         neighbors = []
         directions = [
             (0, 1),   # Down
-            (1, 0),   # Right
             (0, -1),  # Up
+            (1, 0),   # Right
+            
             (-1, 0),  # Left
             (1, 1),   # Down-right
             (-1, -1), # Up-left
@@ -85,7 +87,7 @@ class Node():
         return neighbors
 
     
-    def calculate_arc(self, neighbor, supergrid, platform_name, added_mass, wind_velocity, wind_direction, debug=False):
+    def calculate_arc(self, neighbor):
         """Calculate arc properties between this node and a neighbor."""
         position_self = np.array([self.x, self.y, self.e])
         position_neighbor = np.array([neighbor.x, neighbor.y, neighbor.e])
@@ -94,12 +96,17 @@ class Node():
 
         if self.z == 1 and neighbor.z == 1:
             mode_of_travel='charging'
+            movement_code=1
         elif self.z == 0 and neighbor.z == 0:
             mode_of_travel='charged'
+            movement_code=0
         elif self.z == 1 and neighbor.z == 0:
             mode_of_travel='charged'
+            movement_code=0
         elif self.z == 0 and neighbor.z == 1:
             mode_of_travel='charging'
+            movement_code=1
+
 
 
         # Risk level (placeholder logic for visual/audio detection)
@@ -108,13 +115,16 @@ class Node():
         risk_level = max(visual_detection, audio_detection)
 
         # Energy cost
-        if mode_of_travel == 'charging':
+        if np.array_equal(position_self, position_neighbor):
+            energy_cost = 0
+            travel_time = 0 #TODO: Should be a function of distance
+        elif mode_of_travel == 'charging':
             energy_cost = 100
         elif mode_of_travel == 'charged':
             energy_cost = 150
 
 
-        return [position_self, position_neighbor, mode_of_travel, travel_time, risk_level, energy_cost, self.e]
+        return [risk_level, travel_time, energy_cost, movement_code]
 
     def direction_of_travel(initial_point, final_point, math):
         x1, y1, _ = initial_point
@@ -145,9 +155,15 @@ class Node():
         return row, col
 
 class Arc():
-    def __init__(self):
-        pass
-    
+    def __init__(self, arc_id, node_from, node_to, properties):
+        """Arc class to store connection information between nodes."""
+        self.arc_id = arc_id
+        self.node_from = node_from
+        self.node_to = node_to
+        self.properties = properties
+
+    def __repr__(self):
+        return f"Arc({self.arc_id}, from: {self.node_from.id}, to: {self.node_to.id})"
 
 def setup(rows, cols):
     """creates 3D grid of nodes with all attributes neccesary for cost functions
@@ -174,8 +190,21 @@ def setup(rows, cols):
                 node_id += 1
     return grid
 
-def get_arcs():
-    pass
+def get_arcs(grid):
+    """Calculate arcs between nodes and their neighbors."""
+    arc_dict = {}
+    arc_id = 1
+
+    for z in range(len(grid)):  # Iterate through top and bottom grids
+        for row in grid[z]:
+            for node in row:
+                neighbors = node.find_neighbors(grid, rows, cols)
+                for neighbor in neighbors:
+                    properties = node.calculate_arc(neighbor)
+                    arc_dict[arc_id] = [node.id, neighbor.id] + properties
+                    arc_id += 1
+
+    return arc_dict
 
 def display_grid(super_grid, img=None):
     """_summary_
@@ -196,9 +225,6 @@ def display_grid(super_grid, img=None):
 
 # Setup grid and neighbors
 super_grid = setup(rows, cols)
-print(super_grid)
-example_node = super_grid[1][1][1]  # Top grid, first node
-neighbors = example_node.find_neighbors(super_grid, rows, cols)
-print(example_node, ':' ,neighbors, len(neighbors))
-# Display grid
-display_grid(super_grid, elevation_map)
+arc_dictionary = get_arcs(super_grid)
+print(arc_dictionary)
+# display_grid(super_grid, sat_map)
