@@ -3,6 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
 import os
+import math
+
+from scipy.optimize import minimize
+from scipy.interpolate import interp1d
 from exenf_alog import direction_of_travel, exenf_cost
 
 # Constants 
@@ -79,33 +83,59 @@ class Node():
             neighbors.append(grid[1][self.col][self.row])
 
         return neighbors
+
     
-    def find_arc_values(self, neighbors):
-        """Calculate arc values between this node and its neighbors."""
-        arc_values = {}
-        for neighbor in neighbors:
-            if neighbor is None:
-                continue
-            
-            # Example arc cost calculation
-            distance = math.sqrt((self.x - neighbor.x) ** 2 + (self.y - neighbor.y) ** 2)
-            elevation_diff = abs(self.elevation - neighbor.elevation)
-            vegetation_cost = (self.vegetation + neighbor.vegetation) / 2
+    def calculate_arc(self, neighbor, supergrid, platform_name, added_mass, wind_velocity, wind_direction, debug=False):
+        """Calculate arc properties between this node and a neighbor."""
+        position_self = np.array([self.x, self.y, self.e])
+        position_neighbor = np.array([neighbor.x, neighbor.y, neighbor.e])
 
-            # Combine factors (example weighting)
-            arc_cost = distance + 0.5 * elevation_diff + 0.2 * vegetation_cost
-            arc_values[neighbor] = arc_cost
+        travel_time = 60 #TODO: Should be a function of distance
 
-        return arc_values
+        if self.z == 1 and neighbor.z == 1:
+            mode_of_travel='charging'
+        elif self.z == 0 and neighbor.z == 0:
+            mode_of_travel='charged'
+        elif self.z == 1 and neighbor.z == 0:
+            mode_of_travel='charged'
+        elif self.z == 0 and neighbor.z == 1:
+            mode_of_travel='charging'
+
+
+        # Risk level (placeholder logic for visual/audio detection)
+        visual_detection = 0.5  # Replace with `get_visual_detection`
+        audio_detection = 0.3  # Replace with `get_audio_detection`
+        risk_level = max(visual_detection, audio_detection)
+
+        # Energy cost
+        if mode_of_travel == 'charging':
+            energy_cost = 100
+        elif mode_of_travel == 'charged':
+            energy_cost = 150
+
+
+        return [position_self, position_neighbor, mode_of_travel, travel_time, risk_level, energy_cost, self.e]
+
+    def direction_of_travel(initial_point, final_point, math):
+        x1, y1, _ = initial_point
+        x2, y2, _ = final_point
+        
+        dx = x2 - x1
+        dy = y2 - y1
+
+        heading = (math.degrees(math.atan2(dy, dx)) + 360) % 360
+        return heading
+
+
+    def exenf_cost(params, fcns):
+        """Simulated exergy/energy cost calculation."""
+        return 10, 5, "success"  # Replace with actual logic
 
     def __str__(self):
         return f"{self.id}"
     
     def __repr__(self):
         return str(self)
-    
-    def __iter__(self):
-        return [arc_ID, node_i, node_j, risk, time, energy_level, movement_code]
 
     @staticmethod
     def position_to_grid(x, y, buffer=buffer, spacing=SPACING):
@@ -144,6 +174,8 @@ def setup(rows, cols):
                 node_id += 1
     return grid
 
+def get_arcs():
+    pass
 
 def display_grid(super_grid, img=None):
     """_summary_
