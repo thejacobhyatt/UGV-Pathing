@@ -42,17 +42,54 @@ class Node():
         self.v = v
         self.neighbors = {}
 
+        self.rows,self.cols = self.position_to_grid(self.x, self.y)
+
     def get_elevation(self):
         self.e = round((elevation_map[self.x,self.y][0]/255)*MAX_ELEVATION,1)
 
     def get_vegetation(self):
         self.v = round((3 - 3*(vegetation_map[self.x,self.y][0]/255)), 3)
 
+    def find_neighbors(self, grid, rows, cols):
+        """Find neighbors in all cardinal and diagonal directions and the corresponding node in the opposite grid."""
+        neighbors = []
+        directions = [
+            (0, 1),   # Down
+            (1, 0),   # Right
+            (0, -1),  # Up
+            (-1, 0),  # Left
+            (1, 1),   # Down-right
+            (-1, -1), # Up-left
+            (1, -1),  # Down-left
+            (-1, 1)   # Up-right
+        ]
+
+        # Same grid neighbors
+        for dx, dy in directions:
+            nx, ny = self.rows + dx, self.cols + dy
+            if 0 <= nx < rows and 0 <= ny < cols:
+                neighbors.append(grid[self.z][ny][nx])
+
+        # Opposite grid neighbor
+        if self.z == 1: 
+            neighbors.append(grid[0][self.cols][self.rows])
+        else: 
+            neighbors.append(grid[1][self.cols][self.rows])
+
+        return neighbors
+
     def __str__(self):
         return f"Node({self.x}, {self.y}, {self.z}, {self.e}, {self.v})"
     
     def __repr__(self):
         return str(self)
+    
+    @staticmethod
+    def position_to_grid(x, y, buffer=buffer, spacing=SPACING):
+        """Convert x, y coordinates to grid row and column indices."""
+        col = int((x - buffer) / spacing)
+        row = int((y - buffer) / spacing)
+        return row, col
 
 class Arc():
     def __init__(self):
@@ -69,15 +106,17 @@ def setup(rows, cols):
     Returns:
         _type_: _description_
     """
-    grid = [[[None for _ in range(2)] for _ in range(cols)] for _ in range(rows)]
-    print(grid)
-    for j in range(rows):
-        for i in range(cols):
-            for z in range(2):
-                node =  Node(buffer + i * SPACING,buffer + j * SPACING, z)
+    top_grid = [[None for _ in range(1) for _ in range(cols)] for _ in range(rows)]
+    bottom_grid = [[None for _ in range(1) for _ in range(cols)] for _ in range(rows)]
+    grid = [top_grid, bottom_grid]
+
+    for z in range(len(grid)):  # Iterate over the top and bottom grids
+        for j in range(rows):
+            for i in range(cols):
+                node = Node(buffer + i * SPACING, buffer + j * SPACING, z)
                 node.get_elevation()
                 node.get_vegetation()
-                grid[j][i][z] = node
+                grid[z][j][i] = node  # Assign the node to the appropriate grid and position
     return grid
 
 
@@ -101,5 +140,8 @@ def display_grid(super_grid, img=None):
 # Setup grid and neighbors
 super_grid = setup(rows, cols)
 print(super_grid)
+example_node = super_grid[1][1][1]  # Top grid, first node
+neighbors = example_node.find_neighbors(super_grid, rows, cols)
+print(example_node, ':' ,neighbors, len(neighbors))
 # Display grid
 display_grid(super_grid, elevation_map)
