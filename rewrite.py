@@ -4,17 +4,19 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import os
 import math
+from tqdm import tqdm
 
 from scipy.optimize import minimize
 from scipy.interpolate import interp1d
 from exenf_alog import direction_of_travel, exenf_cost
 
-from detection_funcs import get_audio_detection, seeker_orientation_uncertainty, get_seeker_group
+from detection_funcs import get_audio_detection, seeker_orientation_uncertainty, get_seeker_group, get_visual_detection
 
 # Constants 
 SITUATION = "Buckner"
-SPACING = 40
+SPACING = 10
 MAX_ELEVATION = 603
+DISTANCE_SCALE = 300
 speed_dic = {'charged':1, 'charging':1} #VALIDATE THESE SPEEDS THROUGH TESTING!
 height_dic = {'charged':1.5, 'charging':1.5} #CONFIRM HEIGHTS - ASSUME 
 
@@ -117,9 +119,9 @@ class Node():
 
         # Risk level (placeholder logic for visual/audio detection)
         
-        visual_detection = 0.5
-        
-        audio_detection = get_audio_detection(position_self,position_neighbor,mode_of_travel,seeker_groups, vegetation_map)
+        visual_detection = get_visual_detection(position_self,position_neighbor, mode_of_travel, travel_time, seeker_groups, seekers, elevation_map, MAX_ELEVATION,vegetation_map,DISTANCE_SCALE)
+
+        audio_detection = get_audio_detection(position_self,position_neighbor,mode_of_travel,seeker_groups, vegetation_map,DISTANCE_SCALE)
         
         risk_level = max(visual_detection, audio_detection)
 
@@ -161,14 +163,6 @@ class Node():
         row = int((y - buffer) / spacing)
         return row, col
 
-
-
-
-
-
-
-
-
 def setup(rows, cols):
     """creates 3D grid of nodes with all attributes neccesary for cost functions
 
@@ -180,7 +174,7 @@ def setup(rows, cols):
         _type_: _description_
     """
     top_grid = [[None for _ in range(1) for _ in range(cols)] for _ in range(rows)]
-    bottom_grid = [[None for _ in range(1) for _ in range(cols)] for _ in range(rows)]
+    bottom_grid = [[None for _ in range(1) for _ in range(cols)] for _ in range(rows)] 
     grid = [top_grid, bottom_grid]
     node_id = 1
 
@@ -202,16 +196,20 @@ def get_arcs(grid):
     arc_id = 1
     seeker_groups={templated_seeker : get_seeker_group(seekers[templated_seeker], elevation_map, MAX_ELEVATION) for templated_seeker in seekers}
 
-    for z in range(len(grid)):  # Iterate through top and bottom grids
-        for row in grid[z]:
-            for node in row:
-                neighbors = node.find_neighbors(grid, rows, cols)
-                for neighbor in neighbors:
-                    properties = node.calculate_arc(neighbor,seeker_groups)
-                    arc_dict[arc_id] = [node.id, neighbor.id] + properties
-                    arc_id += 1
+    total_iterations = sum(
+        len(row) for z in range(len(grid)) for row in grid[z]
+    )
 
-    return arc_dict
+    with tqdm(total=total_iterations, desc="Processing nodes") as pbar:
+        for z in range(len(grid)):  # Iterate through top and bottom grids
+            for row in grid[z]:
+                for node in row:
+                    neighbors = node.find_neighbors(grid, rows, cols)
+                    for neighbor in neighbors:
+                        properties = node.calculate_arc(neighbor, seeker_groups)
+                        arc_dict[arc_id] = [node.id, neighbor.id] + properties
+                        arc_id += 1
+                    pbar.update(1)  # Update progress for each node processed
 
 def display_grid(super_grid, img=None):
     """_summary_
@@ -220,6 +218,9 @@ def display_grid(super_grid, img=None):
         super_grid (numpy.array): _description_
         img (image name, optional): _description_. Defaults to None.
     """
+    fig, ax= plt.subplots()
+    step_size = 5
+
     if img is not None:
         plt.imshow(img)
     
@@ -227,16 +228,25 @@ def display_grid(super_grid, img=None):
         for row in grid:
             for node in row:
                 plt.scatter(node.x, node.y, color="black", s=5)
+
+    for seeker in seekers:
+        [(seeker_x,seeker_y), z, seeker_orient, seeker_orient_uncertainty] = seekers[seeker]
+        ax.arrow(seeker_x, seeker_y, 2*step_size*np.cos(seeker_orient), 2*step_size*np.sin(seeker_orient), width=step_size/10, head_width=step_size/2, color='red')
+        thetas=np.linspace(0, 2*np.pi,100)
+        xs = [seeker_x+z*np.cos(thetas[i]) for i in range(100)]
+        ys = [seeker_y+z*np.sin(thetas[i]) for i in range(100)]
+        ax.plot(xs,ys,color='red')
+    
     plt.show()
 
 
 # Setup grid and neighbors
 super_grid = setup(rows, cols)
 print(super_grid)
+display_grid(super_grid, img=sat_map)
 arc_dictionary = get_arcs(super_grid)
-# for key, value in arc_dictionary.items():
-#     print(f"{key}, {value}")
-# display_grid(super_grid, img=sat_map)
+for key, value in arc_dictionary.items():
+    print(f"{key}, {value}")
 
 # print(super_grid[1][2][2])
 # display_grid(super_grid, sat_map)
