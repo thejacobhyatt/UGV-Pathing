@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import os
 import math
+import csv
 from tqdm import tqdm
 
 from scipy.optimize import minimize
@@ -14,9 +15,9 @@ from detection_funcs import get_audio_detection, seeker_orientation_uncertainty,
 
 # Constants 
 SITUATION = "Buckner"
-SPACING = 10
+SPACING = 40
 MAX_ELEVATION = 603
-DISTANCE_SCALE = 300
+DISTANCE_SCALE = 30
 speed_dic = {'charged':1, 'charging':1} #VALIDATE THESE SPEEDS THROUGH TESTING!
 height_dic = {'charged':1.5, 'charging':1.5} #CONFIRM HEIGHTS - ASSUME 
 
@@ -38,7 +39,7 @@ N = rows * cols * 2
 
 
 # Seekers 
-seekers={1 : [(60,60), 1, 0, seeker_orientation_uncertainty['human']]}
+seekers={1 : [(60,60), 5, 0, seeker_orientation_uncertainty['human']]}
 
 class Node():
     def __init__(self, node_id, x, y, z=0, e=0, v=0):
@@ -134,7 +135,7 @@ class Node():
         elif mode_of_travel == 'charged':
             energy_cost = 150
 
-        return [risk_level, travel_time, energy_cost, movement_code]
+        return risk_level, travel_time, energy_cost, movement_code
 
     def direction_of_travel(initial_point, final_point):
         x1, y1, _ = initial_point
@@ -206,10 +207,12 @@ def get_arcs(grid):
                 for node in row:
                     neighbors = node.find_neighbors(grid, rows, cols)
                     for neighbor in neighbors:
-                        properties = node.calculate_arc(neighbor, seeker_groups)
-                        arc_dict[arc_id] = [node.id, neighbor.id] + properties
+                        risk_level, travel_time, energy_cost, movement_code = node.calculate_arc(neighbor, seeker_groups)
+                        arc_dict[arc_id] = node.id, neighbor.id, risk_level, travel_time, energy_cost, movement_code
                         arc_id += 1
                     pbar.update(1)  # Update progress for each node processed
+    
+    return arc_dict
 
 def display_grid(super_grid, img=None):
     """_summary_
@@ -239,14 +242,21 @@ def display_grid(super_grid, img=None):
     
     plt.show()
 
+def write_to_csv(situation_name, super_grid, arc_dictionary):
+    filename = situation_name + f"_{rows}_{cols}.csv"
+    
+    with open(filename, mode='w', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+        for arc in arc_dictionary:
+            [start_node, end_node, risk, time, energy_level, movement_code] = arc_dictionary[arc] 
+            writer.writerow([arc, start_node, end_node, risk, time, energy_level, movement_code])
 
 # Setup grid and neighbors
 super_grid = setup(rows, cols)
 print(super_grid)
 display_grid(super_grid, img=sat_map)
 arc_dictionary = get_arcs(super_grid)
-for key, value in arc_dictionary.items():
-    print(f"{key}, {value}")
+write_to_csv(SITUATION, super_grid, arc_dictionary)
 
 # print(super_grid[1][2][2])
 # display_grid(super_grid, sat_map)
