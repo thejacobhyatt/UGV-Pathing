@@ -242,21 +242,72 @@ def display_grid(super_grid, img=None):
     
     plt.show()
 
+def get_in_out_arcs(arc_dictionary):
+    """
+    Create dictionaries for all arcs flowing into and out of a node.
+
+    :param arc_dictionary: Dictionary of arcs with keys as arc identifiers and values as [start_node, end_node, risk, time, energy_level, movement_code]
+    :return: Two dictionaries:
+        - in_arcs: Arcs flowing into each node.
+        - out_arcs: Arcs flowing out of each node.
+    """
+    in_arcs = {}
+    out_arcs = {}
+
+    for arc, arc_info in arc_dictionary.items():
+        start_node, end_node, risk, time, energy_level, movement_code = arc_info
+
+        # Add arc to out_arcs for the start_node
+        if start_node not in out_arcs:
+            out_arcs[start_node] = []
+        out_arcs[start_node].append(arc)
+
+        # Add arc to in_arcs for the end_node
+        if end_node not in in_arcs:
+            in_arcs[end_node] = []
+        in_arcs[end_node].append(arc)
+
+    return in_arcs, out_arcs
+
+def pad_to_length(data, length):
+    if len(data) < length:
+        data.extend([0] * (length - len(data)))
+    return data
+
 def write_to_csv(situation_name, super_grid, arc_dictionary):
-    filename = situation_name + f"_{rows}_{cols}.csv"
-    
-    with open(filename, mode='w', newline='', encoding='utf-8') as file:
+    arc_name = situation_name + f"_arcs_{rows}_{cols}.csv"
+    ins_name = situation_name + f"_ins_{rows}_{cols}.csv"
+    outs_name = situation_name + f"_outs_{rows}_{cols}.csv"
+
+    with open(arc_name, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         for arc in arc_dictionary:
             [start_node, end_node, risk, time, energy_level, movement_code] = arc_dictionary[arc] 
             writer.writerow([arc, start_node, end_node, risk, time, energy_level, movement_code])
+
+    "Get inflow sets, outflow sets, and triangle sets"
+    in_arcs, out_arcs = get_in_out_arcs(arc_dictionary)
+
+    'Write outflow dictionary to csv'
+    with open(outs_name, 'w', newline='') as file:
+        writer = csv.writer(file)
+        for node in range(N):
+            outflows = out_arcs[node+1]
+            outflows_padded = pad_to_length(outflows, 10)
+            writer.writerow(outflows_padded)
+
+    'Write inflow dictionary to csv'
+    with open(ins_name, 'w', newline='') as file:
+        writer = csv.writer(file)
+        for node in range(N):
+            inflows = in_arcs[node+1]
+            inflows_padded = pad_to_length(inflows, 10)
+            writer.writerow(inflows_padded)                
 
 # Setup grid and neighbors
 super_grid = setup(rows, cols)
 print(super_grid)
 display_grid(super_grid, img=sat_map)
 arc_dictionary = get_arcs(super_grid)
-write_to_csv(SITUATION, super_grid, arc_dictionary)
 
-# print(super_grid[1][2][2])
-# display_grid(super_grid, sat_map)
+write_to_csv(SITUATION, super_grid, arc_dictionary)
