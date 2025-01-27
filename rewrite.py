@@ -279,8 +279,11 @@ def write_to_csv(situation_name, super_grid, arc_dictionary):
     ins_name = situation_name + f"_ins_{rows}_{cols}.csv"
     outs_name = situation_name + f"_outs_{rows}_{cols}.csv"
 
+    header = ['Arc', 'Start Node', 'End Node', 'Risk', 'Time', 'Energy Level', 'Movement Code']
+
     with open(arc_name, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
+        writer.writerow(header)
         for arc in arc_dictionary:
             [start_node, end_node, risk, time, energy_level, movement_code] = arc_dictionary[arc] 
             writer.writerow([arc, start_node, end_node, risk, time, energy_level, movement_code])
