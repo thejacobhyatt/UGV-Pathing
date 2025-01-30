@@ -355,44 +355,50 @@ def extract_path(csv_name):
             path.append(float(row[0]))
     return path
     
-def plot_path(arcs, path, img):
-    fig, ax= plt.subplots()
+def plot_path(arcs, path, super_grid, img):
+    fig, ax = plt.subplots()
     step_size = 5
 
+    # Plot image if provided
     if img is not None:
-        plt.imshow(img)
+        ax.imshow(img)
     
+    # Plot Nodes
     for grid in super_grid:
         for row in grid:
             for node in row:
-                plt.scatter(node.x, node.y, color="black", s=5)
+                ax.scatter(node.x, node.y, color="black", s=5)
+
 
     for seeker in seekers:
-        [(seeker_x,seeker_y), z, seeker_orient, seeker_orient_uncertainty] = seekers[seeker]
-        ax.arrow(seeker_x, seeker_y, 2*step_size*np.cos(seeker_orient), 2*step_size*np.sin(seeker_orient), width=step_size/10, head_width=step_size/2, color='red')
-        thetas=np.linspace(0, 2*np.pi,100)
-        xs = [seeker_x+z*np.cos(thetas[i]) for i in range(100)]
-        ys = [seeker_y+z*np.sin(thetas[i]) for i in range(100)]
-        ax.plot(xs,ys,color='red')
+        (seeker_x, seeker_y), z, seeker_orient, _ = seekers[seeker]
+        ax.arrow(seeker_x, seeker_y, 2 * step_size * np.cos(seeker_orient), 2 * step_size * np.sin(seeker_orient),
+                 width=step_size / 10, head_width=step_size / 2, color='red')
 
-        # Plot arcs from the path
-    # Store x and y coordinates for plotting lines
-    x_coords = []
-    y_coords = []
+        thetas = np.linspace(0, 2 * np.pi, 100)
+        xs = [seeker_x + z * np.cos(theta) for theta in thetas]
+        ys = [seeker_y + z * np.sin(theta) for theta in thetas]
+        ax.plot(xs, ys, color='red')
 
-    for arc in path:
-        if arc in arcs:  # Ensure arc exists in dictionary
-            x, y = arcs[arc]
-            print(x,y)
+    # Path Code 
+    nodes = [coord for arc in path for coord in arcs[arc]]
+    x_coords, y_coords = zip(*[find_node_by_id(node, super_grid)[:2] for node in nodes])
 
-            ax.scatter(x, y, color="blue", s=20)  # Mark nodes
-            ax.text(x, y, str(arc), fontsize=8, ha='right', color='black')  # Label nodes
-
-    # Plot the path by connecting points with a line
-    if len(x_coords) > 1:
-        ax.plot(x_coords, y_coords, color='blue', linewidth=2)  # Connect nodes
+    for i in range(len(x_coords) - 1):
+        ax.plot([x_coords[i], x_coords[i + 1]], [y_coords[i], y_coords[i + 1]], color='black', linewidth=3)
 
     plt.show()
+
+
+def find_node_by_id(node_id, super_grid):
+    for z in range(len(super_grid)): 
+        for row in super_grid[z]:
+            for node in row:  
+                if node.id == node_id: 
+                    return (node.x, node.y, z)
+    return None  # Return None if node ID is not found
+
+
 
 super_grid = setup(rows, cols)
 
@@ -403,4 +409,4 @@ super_grid = setup(rows, cols)
 
 path = extract_path('output_3x3.csv')
 arcs = extract_arcs('Buckner_arcs_3_3.csv')
-plot_path(arcs, path, img=sat_map)
+plot_path(arcs, path, super_grid, img=sat_map)
