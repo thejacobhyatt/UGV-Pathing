@@ -383,12 +383,7 @@ def plot_path(arcs, path, img):
     for arc in path:
         if arc in arcs:  # Ensure arc exists in dictionary
             x, y = arcs[arc]
-            
-            x = buffer + x * SPACING
-            y = buffer + y * SPACING
-
-            x_coords.append(x)
-            y_coords.append(y)
+            print(x,y)
 
             ax.scatter(x, y, color="blue", s=20)  # Mark nodes
             ax.text(x, y, str(arc), fontsize=8, ha='right', color='black')  # Label nodes
@@ -397,10 +392,6 @@ def plot_path(arcs, path, img):
     if len(x_coords) > 1:
         ax.plot(x_coords, y_coords, color='blue', linewidth=2)  # Connect nodes
 
-    plt.xlabel("X-axis")
-    plt.ylabel("Y-axis")
-    plt.title("Path Plot with Arcs")
-    plt.grid(True)
     plt.show()
 
 super_grid = setup(rows, cols)
