@@ -279,11 +279,11 @@ def write_to_csv(situation_name, super_grid, arc_dictionary):
     ins_name = situation_name + f"_ins_{rows}_{cols}.csv"
     outs_name = situation_name + f"_outs_{rows}_{cols}.csv"
 
-    header = ['Arc', 'Start Node', 'End Node', 'Risk', 'Time', 'Energy Level', 'Movement Code']
+    # header = ['Arc', 'Start Node', 'End Node', 'Risk', 'Time', 'Energy Level', 'Movement Code']
 
     with open(arc_name, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
-        writer.writerow(header)
+        # writer.writerow(header)
         for arc in arc_dictionary:
             [start_node, end_node, risk, time, energy_level, movement_code] = arc_dictionary[arc] 
             writer.writerow([arc, start_node, end_node, risk, time, energy_level, movement_code])
@@ -307,10 +307,109 @@ def write_to_csv(situation_name, super_grid, arc_dictionary):
             inflows_padded = pad_to_length(inflows, 10)
             writer.writerow(inflows_padded)                
 
-# Setup grid and neighbors
-super_grid = setup(rows, cols)
-print(super_grid)
-display_grid(super_grid, img=sat_map)
-arc_dictionary = get_arcs(super_grid)
+def display_path(super_grid, path, img=None):
+    """_summary_
 
-write_to_csv(SITUATION, super_grid, arc_dictionary)
+    Args:
+        super_grid (numpy.array): _description_
+        img (image name, optional): _description_. Defaults to None.
+    """
+    fig, ax= plt.subplots()
+    step_size = 5
+
+    if img is not None:
+        plt.imshow(img)
+    
+    for grid in super_grid:
+        for row in grid:
+            for node in row:
+                plt.scatter(node.x, node.y, color="black", s=5)
+
+    for seeker in seekers:
+        [(seeker_x,seeker_y), z, seeker_orient, seeker_orient_uncertainty] = seekers[seeker]
+        ax.arrow(seeker_x, seeker_y, 2*step_size*np.cos(seeker_orient), 2*step_size*np.sin(seeker_orient), width=step_size/10, head_width=step_size/2, color='red')
+        thetas=np.linspace(0, 2*np.pi,100)
+        xs = [seeker_x+z*np.cos(thetas[i]) for i in range(100)]
+        ys = [seeker_y+z*np.sin(thetas[i]) for i in range(100)]
+        ax.plot(xs,ys,color='red')
+    
+    plt.show()
+
+
+def extract_arcs(csv_name):
+    arcs = {}
+    with open(csv_name, mode="r") as file:
+        reader = csv.reader(file)
+        for row in reader:
+            key = int(row[0])  # First column as key
+            value = (int(row[1]), int(row[2]))  # Tuple of second and third columns
+            arcs[key] = value
+    return arcs
+
+def extract_path(csv_name):
+    path = []
+    with open(csv_name, mode="r") as file:
+        reader = csv.reader(file)
+        next(reader)
+        for row in reader:
+            path.append(float(row[0]))
+    return path
+    
+def plot_path(arcs, path, img):
+    fig, ax= plt.subplots()
+    step_size = 5
+
+    if img is not None:
+        plt.imshow(img)
+    
+    for grid in super_grid:
+        for row in grid:
+            for node in row:
+                plt.scatter(node.x, node.y, color="black", s=5)
+
+    for seeker in seekers:
+        [(seeker_x,seeker_y), z, seeker_orient, seeker_orient_uncertainty] = seekers[seeker]
+        ax.arrow(seeker_x, seeker_y, 2*step_size*np.cos(seeker_orient), 2*step_size*np.sin(seeker_orient), width=step_size/10, head_width=step_size/2, color='red')
+        thetas=np.linspace(0, 2*np.pi,100)
+        xs = [seeker_x+z*np.cos(thetas[i]) for i in range(100)]
+        ys = [seeker_y+z*np.sin(thetas[i]) for i in range(100)]
+        ax.plot(xs,ys,color='red')
+
+        # Plot arcs from the path
+    # Store x and y coordinates for plotting lines
+    x_coords = []
+    y_coords = []
+
+    for arc in path:
+        if arc in arcs:  # Ensure arc exists in dictionary
+            x, y = arcs[arc]
+            
+            x = buffer + x * SPACING
+            y = buffer + y * SPACING
+
+            x_coords.append(x)
+            y_coords.append(y)
+
+            ax.scatter(x, y, color="blue", s=20)  # Mark nodes
+            ax.text(x, y, str(arc), fontsize=8, ha='right', color='black')  # Label nodes
+
+    # Plot the path by connecting points with a line
+    if len(x_coords) > 1:
+        ax.plot(x_coords, y_coords, color='blue', linewidth=2)  # Connect nodes
+
+    plt.xlabel("X-axis")
+    plt.ylabel("Y-axis")
+    plt.title("Path Plot with Arcs")
+    plt.grid(True)
+    plt.show()
+
+super_grid = setup(rows, cols)
+
+# print(super_grid)
+# display_grid(super_grid, img=sat_map)
+# arc_dictionary = get_arcs(super_grid)
+# write_to_csv(SITUATION, super_grid, arc_dictionary)
+
+path = extract_path('output_3x3.csv')
+arcs = extract_arcs('Buckner_arcs_3_3.csv')
+plot_path(arcs, path, img=sat_map)
