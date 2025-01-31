@@ -15,7 +15,7 @@ from detection_funcs import get_audio_detection, seeker_orientation_uncertainty,
 
 # Constants 
 SITUATION = "Buckner"
-SPACING = 40
+SPACING = 50
 MAX_ELEVATION = 603
 DISTANCE_SCALE = 30
 GENERATOR_COEF = 5 # J per Second
@@ -281,6 +281,24 @@ def get_in_out_arcs(arc_dictionary):
 
     return in_arcs, out_arcs
 
+def get_triangle_sets(node_field):
+    triangle_sets = []
+
+    # Iterate over each node, except for the last row and last column (for avoiding out-of-bounds access)
+    for row in range(1, rows):
+        for col in range(1, cols):
+            # Define the four potential neighbors forming a 2x2 square
+            node1 = node_field[row][col]  # Top-left
+            node2 = node_field[row][col + 1]  # Top-right
+            node3 = node_field[row + 1][col]  # Bottom-left
+            node4 = node_field[row + 1][col + 1]  # Bottom-right
+            
+            # Form two triangles from the 2x2 grid of nodes
+            triangle_sets.append([node1, node2, node3])  # Triangle 1: top-left, top-right, bottom-left
+            triangle_sets.append([node2, node3, node4])  # Triangle 2: top-right, bottom-left, bottom-right
+
+    return triangle_sets
+
 def pad_to_length(data, length):
     if len(data) < length:
         data.extend([0] * (length - len(data)))
@@ -290,6 +308,7 @@ def write_to_csv(situation_name, super_grid, arc_dictionary):
     arc_name = situation_name + f"_arcs_{rows}_{cols}.csv"
     ins_name = situation_name + f"_ins_{rows}_{cols}.csv"
     outs_name = situation_name + f"_outs_{rows}_{cols}.csv"
+    triangles_name = situation_name + f"_triangles_{rows}_{cols}.csv"
 
     # header = ['Arc', 'Start Node', 'End Node', 'Risk', 'Time', 'Energy Level', 'Movement Code']
 
@@ -317,7 +336,16 @@ def write_to_csv(situation_name, super_grid, arc_dictionary):
         for node in range(N):
             inflows = in_arcs[node+1]
             inflows_padded = pad_to_length(inflows, 10)
-            writer.writerow(inflows_padded)                
+            writer.writerow(inflows_padded)
+
+    triangle_sets = get_triangle_sets(arc_dictionary)
+    print(triangle_sets)
+
+    with open(triangles_name, 'w', newline='') as file:
+        writer = csv.writer(file)
+        for triangle in triangle_sets:
+            # Write triangle data (assumed as node identifiers)
+            writer.writerow([node.x for node in triangle])  #             
 
 def display_path(super_grid, path, img=None):
     """_summary_
@@ -393,8 +421,10 @@ def plot_path(arcs, path, super_grid, img):
         ax.plot(xs, ys, color='red')
 
     # Path Code 
+
     nodes = [coord for arc in path for coord in arcs[arc]]
     x_coords, y_coords, z = zip(*[find_node_by_id(node, super_grid) for node in nodes])
+
 
     for i in range(len(x_coords) - 1):
         color = 'green' if z[i] == 1 else 'blue'  # Use red for z=1, blue otherwise
@@ -418,8 +448,10 @@ super_grid = setup(rows, cols)
 print(super_grid)
 display_grid(super_grid, img=sat_map)
 arc_dictionary = get_arcs(super_grid)
+
 write_to_csv(SITUATION, super_grid, arc_dictionary)
 
 # path = extract_path('output_3x3.csv')
-# arcs = extract_arcs('Buckner_arcs_3_3.csv')
+# arcs = extract_arcs('Buckner_arcs_4_4.csv')
+# print(path)
 # plot_path(arcs, path, super_grid, img=sat_map)
