@@ -15,7 +15,7 @@ from detection_funcs import get_audio_detection, seeker_orientation_uncertainty,
 
 # Constants 
 SITUATION = "Buckner"
-SPACING = 50
+SPACING = 20
 MAX_ELEVATION = 603
 DISTANCE_SCALE = 30
 GENERATOR_COEF = 5 # J per Second
@@ -126,29 +126,30 @@ class Node():
 
         # Risk level (placeholder logic for visual/audio detection)
         
-        visual_detection = get_visual_detection(position_self,position_neighbor, mode_of_travel, travel_time, seeker_groups, seekers, elevation_map, MAX_ELEVATION,vegetation_map,DISTANCE_SCALE)
-        audio_detection = get_audio_detection(position_self,position_neighbor,mode_of_travel,seeker_groups, vegetation_map,DISTANCE_SCALE)        
-        risk_level = max(visual_detection, audio_detection)
+        # visual_detection = get_visual_detection(position_self,position_neighbor, mode_of_travel, travel_time, seeker_groups, seekers, elevation_map, MAX_ELEVATION,vegetation_map,DISTANCE_SCALE)
+        # audio_detection = get_audio_detection(position_self,position_neighbor,mode_of_travel,seeker_groups, vegetation_map,DISTANCE_SCALE)        
+        # risk_level = max(visual_detection, audio_detection)
+
+        risk_level = 0
 
         # Energy cost
-        if np.array_equal(position_self, position_neighbor):
-            energy_cost = 0
-        else: 
-            heading = direction_of_travel(position_self,position_neighbor)
-            if heading == None:
-                heading = 1
-        
-            params = [position_self, position_neighbor, travel_time, platform_name, added_mass, wind_velocity, wind_direction, heading, False]
-            fcns = [np, minimize, interp1d, math, os]
-            Jcon, Jgen, msg = exenf_cost(params,fcns)
+        #if np.array_equal(position_self, position_neighbor):
+        #    energy_cost = 0
+        #else: 
+        #    heading = direction_of_travel(position_self,position_neighbor)
+        #    if heading == None:
+        #        heading = 1
+        #
+        #    params = [position_self, position_neighbor, travel_time, platform_name, added_mass, wind_velocity, wind_direction, heading, False]
+        #    fcns = [np, minimize, interp1d, math, os]
+        #    Jcon, Jgen, msg = exenf_cost(params,fcns)
 
-            Jgen = Jgen*(.25)
+        #    Jgen = Jgen*(.25)
             
-            if mode_of_travel == 'charging':
-                Jgen += GENERATOR_COEF
-
-            energy_cost = Jcon - Jgen
-
+        #    if mode_of_travel == 'charging':
+        #        Jgen += GENERATOR_COEF
+        #    energy_cost = Jcon - Jgen
+        energy_cost = 0
         return risk_level, travel_time, energy_cost, movement_code
 
     def __str__(self):
@@ -165,8 +166,7 @@ class Node():
         return row, col
 
 def setup(rows, cols):
-    """creates 3D grid of nodes with all attributes neccesary for cost functions
-
+    """creates 3D grid of nodes with all attributes neccesary for cost function
     Args:
         rows (_type_): _description_
         cols (_type_): _description_
@@ -285,17 +285,17 @@ def get_triangle_sets(node_field):
     triangle_sets = []
 
     # Iterate over each node, except for the last row and last column (for avoiding out-of-bounds access)
-    for row in range(1, rows):
-        for col in range(1, cols):
-            # Define the four potential neighbors forming a 2x2 square
-            node1 = node_field[row][col]  # Top-left
-            node2 = node_field[row][col + 1]  # Top-right
-            node3 = node_field[row + 1][col]  # Bottom-left
-            node4 = node_field[row + 1][col + 1]  # Bottom-right
-            
-            # Form two triangles from the 2x2 grid of nodes
-            triangle_sets.append([node1, node2, node3])  # Triangle 1: top-left, top-right, bottom-left
-            triangle_sets.append([node2, node3, node4])  # Triangle 2: top-right, bottom-left, bottom-right
+    for row in range(1, rows+1):  # Ensure we don't exceed the last row
+        for col in range(1, cols+1):  # Ensure we don't exceed the last column
+            # Ensure the nodes exist before accessing them
+                node1 = node_field[row][col]  # Top-left
+                node2 = node_field[row][col + 1]  # Top-right
+                node3 = node_field[row + 1][col]  # Bottom-left
+                node4 = node_field[row + 1][col + 1]  # Bottom-right
+
+                # Form two triangles from the 2x2 grid of nodes
+                triangle_sets.append([node1, node2, node3])  # Triangle 1: top-left, top-right, bottom-left
+                triangle_sets.append([node2, node3, node4])  # Triangle 2: top-right, bottom-left, bottom-right
 
     return triangle_sets
 
@@ -344,8 +344,7 @@ def write_to_csv(situation_name, super_grid, arc_dictionary):
     with open(triangles_name, 'w', newline='') as file:
         writer = csv.writer(file)
         for triangle in triangle_sets:
-            # Write triangle data (assumed as node identifiers)
-            writer.writerow([node.x for node in triangle])  #             
+            writer.writerow(triangle)       
 
 def display_path(super_grid, path, img=None):
     """_summary_
