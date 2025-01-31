@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from scipy.optimize import minimize
 from scipy.interpolate import interp1d
-from exenf_alog import direction_of_travel, exenf_cost
+from exenf_alog import exenf_cost
 
 from detection_funcs import get_audio_detection, seeker_orientation_uncertainty, get_seeker_group, get_visual_detection
 
@@ -18,7 +18,8 @@ SITUATION = "Buckner"
 SPACING = 40
 MAX_ELEVATION = 603
 DISTANCE_SCALE = 30
-speed_dic = {'charged':1, 'charging':1} #VALIDATE THESE SPEEDS THROUGH TESTING!
+GENERATOR_COEF = 5 # J per Second
+SPEED = 6.7 # m/s
 height_dic = {'charged':1.5, 'charging':1.5} #CONFIRM HEIGHTS - ASSUME 
 
 # Load in Images
@@ -100,10 +101,15 @@ class Node():
     
     def calculate_arc(self, neighbor, seeker_groups):
         """Calculate arc properties between this node and a neighbor."""
+        platform_name = 'moose'
+        added_mass = 0
+        wind_velocity = 0
+        wind_direction = 0
+
         position_self = np.array([self.x, self.y, self.e])
         position_neighbor = np.array([neighbor.x, neighbor.y, neighbor.e])
 
-        travel_time = 60 #TODO: Should be a function of distance
+        travel_time = SPACING * DISTANCE_SCALE / SPEED
 
         if self.z == 1 and neighbor.z == 1:
             mode_of_travel='charging'
@@ -121,35 +127,29 @@ class Node():
         # Risk level (placeholder logic for visual/audio detection)
         
         visual_detection = get_visual_detection(position_self,position_neighbor, mode_of_travel, travel_time, seeker_groups, seekers, elevation_map, MAX_ELEVATION,vegetation_map,DISTANCE_SCALE)
-
-        audio_detection = get_audio_detection(position_self,position_neighbor,mode_of_travel,seeker_groups, vegetation_map,DISTANCE_SCALE)
-        
+        audio_detection = get_audio_detection(position_self,position_neighbor,mode_of_travel,seeker_groups, vegetation_map,DISTANCE_SCALE)        
         risk_level = max(visual_detection, audio_detection)
 
         # Energy cost
         if np.array_equal(position_self, position_neighbor):
             energy_cost = 0
-            travel_time = 0 #TODO: Should be a function of distance
-        elif mode_of_travel == 'charging':
-            energy_cost = 100
-        elif mode_of_travel == 'charged':
-            energy_cost = 150
+        else: 
+            heading = direction_of_travel(position_self,position_neighbor)
+            if heading == None:
+                heading = 1
+        
+            params = [position_self, position_neighbor, travel_time, platform_name, added_mass, wind_velocity, wind_direction, heading, False]
+            fcns = [np, minimize, interp1d, math, os]
+            Jcon, Jgen, msg = exenf_cost(params,fcns)
+
+            Jgen = Jgen*(.25)
+            
+            if mode_of_travel == 'charging':
+                Jgen += GENERATOR_COEF
+
+            energy_cost = Jcon - Jgen
 
         return risk_level, travel_time, energy_cost, movement_code
-
-    def direction_of_travel(initial_point, final_point):
-        x1, y1, _ = initial_point
-        x2, y2, _ = final_point
-        
-        dx = x2 - x1
-        dy = y2 - y1
-
-        heading = (math.degrees(math.atan2(dy, dx)) + 360) % 360
-        return heading
-
-    def exenf_cost(params, fcns):
-        """Simulated exergy/energy cost calculation."""
-        return 10, 5, "success"  # Replace with actual logic
 
     def __str__(self):
         return f"{self.id}"
@@ -213,6 +213,18 @@ def get_arcs(grid):
                     pbar.update(1)  # Update progress for each node processed
     
     return arc_dict
+
+
+def direction_of_travel(initial_point, final_point):
+    x1, y1, _ = initial_point
+    x2, y2, _ = final_point
+    
+    dx = x2 - x1
+    dy = y2 - y1
+
+    heading = (math.degrees(math.atan2(dy, dx)) + 360) % 360
+    return heading
+
 
 def display_grid(super_grid, img=None):
     """_summary_
