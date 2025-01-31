@@ -382,10 +382,11 @@ def plot_path(arcs, path, super_grid, img):
 
     # Path Code 
     nodes = [coord for arc in path for coord in arcs[arc]]
-    x_coords, y_coords = zip(*[find_node_by_id(node, super_grid)[:2] for node in nodes])
+    x_coords, y_coords, z = zip(*[find_node_by_id(node, super_grid) for node in nodes])
 
     for i in range(len(x_coords) - 1):
-        ax.plot([x_coords[i], x_coords[i + 1]], [y_coords[i], y_coords[i + 1]], color='black', linewidth=3)
+        color = 'green' if z[i] == 1 else 'blue'  # Use red for z=1, blue otherwise
+        ax.plot([x_coords[i], x_coords[i + 1]], [y_coords[i], y_coords[i + 1]], color=color, linewidth=3)
 
     plt.show()
 
@@ -402,11 +403,11 @@ def find_node_by_id(node_id, super_grid):
 
 super_grid = setup(rows, cols)
 
-# print(super_grid)
-# display_grid(super_grid, img=sat_map)
-# arc_dictionary = get_arcs(super_grid)
-# write_to_csv(SITUATION, super_grid, arc_dictionary)
+print(super_grid)
+display_grid(super_grid, img=sat_map)
+arc_dictionary = get_arcs(super_grid)
+write_to_csv(SITUATION, super_grid, arc_dictionary)
 
-path = extract_path('output_3x3.csv')
-arcs = extract_arcs('Buckner_arcs_3_3.csv')
-plot_path(arcs, path, super_grid, img=sat_map)
+# path = extract_path('output_3x3.csv')
+# arcs = extract_arcs('Buckner_arcs_3_3.csv')
+# plot_path(arcs, path, super_grid, img=sat_map)
