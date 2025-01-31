@@ -15,7 +15,7 @@ from detection_funcs import get_audio_detection, seeker_orientation_uncertainty,
 
 # Constants 
 SITUATION = "Buckner"
-SPACING = 20
+SPACING = 40
 MAX_ELEVATION = 603
 DISTANCE_SCALE = 30
 GENERATOR_COEF = 5 # J per Second
@@ -130,7 +130,7 @@ class Node():
         # audio_detection = get_audio_detection(position_self,position_neighbor,mode_of_travel,seeker_groups, vegetation_map,DISTANCE_SCALE)        
         # risk_level = max(visual_detection, audio_detection)
 
-        risk_level = 0
+        risk_level = 100
 
         # Energy cost
         #if np.array_equal(position_self, position_neighbor):
@@ -149,7 +149,10 @@ class Node():
         #    if mode_of_travel == 'charging':
         #        Jgen += GENERATOR_COEF
         #    energy_cost = Jcon - Jgen
-        energy_cost = 0
+        energy_cost = 100
+        if movement_code == 1:
+            energy_cost = 50
+
         return risk_level, travel_time, energy_cost, movement_code
 
     def __str__(self):
@@ -281,23 +284,40 @@ def get_in_out_arcs(arc_dictionary):
 
     return in_arcs, out_arcs
 
-def get_triangle_sets(node_field):
-    triangle_sets = []
+from collections import defaultdict
 
-    # Iterate over each node, except for the last row and last column (for avoiding out-of-bounds access)
-    for row in range(1, rows+1):  # Ensure we don't exceed the last row
-        for col in range(1, cols+1):  # Ensure we don't exceed the last column
-            # Ensure the nodes exist before accessing them
-                node1 = node_field[row][col]  # Top-left
-                node2 = node_field[row][col + 1]  # Top-right
-                node3 = node_field[row + 1][col]  # Bottom-left
-                node4 = node_field[row + 1][col + 1]  # Bottom-right
+def get_triangle_sets(arcs, super_grid):
+    adjacency_list = defaultdict(set)
+    arc_lookup = {}  # Store arcs between nodes for quick retrieval
 
-                # Form two triangles from the 2x2 grid of nodes
-                triangle_sets.append([node1, node2, node3])  # Triangle 1: top-left, top-right, bottom-left
-                triangle_sets.append([node2, node3, node4])  # Triangle 2: top-right, bottom-left, bottom-right
+    # Build adjacency list and arc lookup
+    for arc_id, arc_info in arc_dictionary.items():
+        start_node, end_node, risk, time, energy_level, movement_code = arc_info
 
-    return triangle_sets
+        # Store bidirectional edges (remove the second line if the graph is directed)
+        adjacency_list[start_node].add(end_node)
+        # Store the arc ID for reference
+        arc_lookup[frozenset([start_node, end_node])] = arc_id
+
+    triangles = set()
+
+    # Find triangles
+    for node in adjacency_list:
+        for neighbor1 in adjacency_list[node]:
+            for neighbor2 in adjacency_list[neighbor1]:
+                if neighbor2 in adjacency_list[node] and node != neighbor2:
+                    # Sort the nodes to avoid duplicate triangles
+                    triangle_nodes = tuple(sorted([node, neighbor1, neighbor2]))
+
+                    # Retrieve arc IDs
+                    arc1 = arc_lookup[frozenset([node, neighbor1])]
+                    arc2 = arc_lookup[frozenset([neighbor1, neighbor2])]
+                    arc3 = arc_lookup[frozenset([neighbor2, node])]
+
+                    # Store triangle with arc IDs
+                    triangles.add( (arc1, arc2, arc3))
+
+    return triangles
 
 def pad_to_length(data, length):
     if len(data) < length:
@@ -338,7 +358,7 @@ def write_to_csv(situation_name, super_grid, arc_dictionary):
             inflows_padded = pad_to_length(inflows, 10)
             writer.writerow(inflows_padded)
 
-    triangle_sets = get_triangle_sets(arc_dictionary)
+    triangle_sets = get_triangle_sets(arc_dictionary, super_grid)
     print(triangle_sets)
 
     with open(triangles_name, 'w', newline='') as file:
@@ -450,7 +470,7 @@ arc_dictionary = get_arcs(super_grid)
 
 write_to_csv(SITUATION, super_grid, arc_dictionary)
 
-# path = extract_path('output_3x3.csv')
-# arcs = extract_arcs('Buckner_arcs_4_4.csv')
-# print(path)
-# plot_path(arcs, path, super_grid, img=sat_map)
+path = extract_path('output_3x3.csv')
+arcs = extract_arcs('Buckner_arcs_3_3.csv')
+print(path)
+plot_path(arcs, path, super_grid, img=sat_map)
