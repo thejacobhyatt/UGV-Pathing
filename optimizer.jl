@@ -92,20 +92,20 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, τ, inflow, outf
 
 
     # Battery and energy tracking
-    # @variable(m1, batteryLevel[1:A] >= 0) # Battery level at each step
-    # @variable(m1, energyUsed[1:A] >= 0) # Energy used in each path transition
+    @variable(m1, batteryLevel[1:A] >= 0) # Battery level at each step
+    @variable(m1, energyUsed[1:A] >= 0) # Energy used in each path transition
     
     # Initialize battery level
-    # @constraint(m1, batteryLevel[1] == batteryCapacity) 
+    @constraint(m1, batteryLevel[1] == batteryCapacity) 
 
     # Energy constraints: energy consumed per path transition
-   #  @constraint(m1, [i in 1:A], energyUsed[i] == E[i] * x[i])  # Energy consumption for each path
+    @constraint(m1, [i in 1:A], energyUsed[i] == E[i] * x[i])  # Energy consumption for each path
 
     # Update battery level for each step
-    # @constraint(m1, [i in 2:A], batteryLevel[i] == batteryLevel[i-1] - energyUsed[i])  # For i > 1
+    @constraint(m1, [i in 2:A], batteryLevel[i] == batteryLevel[i-1] - energyUsed[i])  # For i > 1
 
-    # @constraint(m1, [i in 1:A], batteryLevel[i] >= 0) # Battery does not go below 0
-    # @constraint(m1, [i in 1:A], batteryLevel[i] <= batteryCapacity) # Ensure battery level does not exceed capacity
+    @constraint(m1, [i in 1:A], batteryLevel[i] >= 0) # Battery does not go below 0
+    @constraint(m1, [i in 1:A], batteryLevel[i] <= batteryCapacity) # Ensure battery level does not exceed capacity
 
     # Insert code to handle jumps to top grid if needed (if there's logic for this)
     # For example, if battery is low, some paths could be avoided.
