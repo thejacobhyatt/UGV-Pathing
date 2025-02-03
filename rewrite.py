@@ -15,7 +15,7 @@ from detection_funcs import get_audio_detection, seeker_orientation_uncertainty,
 
 # Constants 
 SITUATION = "Buckner"
-SPACING = 40
+SPACING = 10
 MAX_ELEVATION = 603
 DISTANCE_SCALE = 30
 GENERATOR_COEF = 5 # J per Second
@@ -126,11 +126,11 @@ class Node():
 
         # Risk level (placeholder logic for visual/audio detection)
         
-        # visual_detection = get_visual_detection(position_self,position_neighbor, mode_of_travel, travel_time, seeker_groups, seekers, elevation_map, MAX_ELEVATION,vegetation_map,DISTANCE_SCALE)
-        # audio_detection = get_audio_detection(position_self,position_neighbor,mode_of_travel,seeker_groups, vegetation_map,DISTANCE_SCALE)        
-        # risk_level = max(visual_detection, audio_detection)
+        visual_detection = get_visual_detection(position_self,position_neighbor, mode_of_travel, travel_time, seeker_groups, seekers, elevation_map, MAX_ELEVATION,vegetation_map,DISTANCE_SCALE)
+        audio_detection = get_audio_detection(position_self,position_neighbor,mode_of_travel,seeker_groups, vegetation_map,DISTANCE_SCALE)        
+        risk_level = max(visual_detection, audio_detection)
 
-        risk_level = 100
+        # risk_level = 100
 
         # Energy cost
         #if np.array_equal(position_self, position_neighbor):
@@ -286,38 +286,9 @@ def get_in_out_arcs(arc_dictionary):
 
 from collections import defaultdict
 
-def get_triangle_sets(arcs, super_grid):
-    adjacency_list = defaultdict(set)
-    arc_lookup = {}  # Store arcs between nodes for quick retrieval
+def get_triangle_sets(super_grid, arc_dictionary):
+    pass
 
-    # Build adjacency list and arc lookup
-    for arc_id, arc_info in arc_dictionary.items():
-        start_node, end_node, risk, time, energy_level, movement_code = arc_info
-
-        # Store bidirectional edges (remove the second line if the graph is directed)
-        adjacency_list[start_node].add(end_node)
-        # Store the arc ID for reference
-        arc_lookup[frozenset([start_node, end_node])] = arc_id
-
-    triangles = set()
-
-    # Find triangles
-    for node in adjacency_list:
-        for neighbor1 in adjacency_list[node]:
-            for neighbor2 in adjacency_list[neighbor1]:
-                if neighbor2 in adjacency_list[node] and node != neighbor2:
-                    # Sort the nodes to avoid duplicate triangles
-                    triangle_nodes = tuple(sorted([node, neighbor1, neighbor2]))
-
-                    # Retrieve arc IDs
-                    arc1 = arc_lookup[frozenset([node, neighbor1])]
-                    arc2 = arc_lookup[frozenset([neighbor1, neighbor2])]
-                    arc3 = arc_lookup[frozenset([neighbor2, node])]
-
-                    # Store triangle with arc IDs
-                    triangles.add( (arc1, arc2, arc3))
-
-    return triangles
 
 def pad_to_length(data, length):
     if len(data) < length:
@@ -358,41 +329,12 @@ def write_to_csv(situation_name, super_grid, arc_dictionary):
             inflows_padded = pad_to_length(inflows, 10)
             writer.writerow(inflows_padded)
 
-    triangle_sets = get_triangle_sets(arc_dictionary, super_grid)
-    print(triangle_sets)
+    # triangle_sets = get_triangle_sets(super_grid, arc_dictionary)
 
-    with open(triangles_name, 'w', newline='') as file:
-        writer = csv.writer(file)
-        for triangle in triangle_sets:
-            writer.writerow(triangle)       
-
-def display_path(super_grid, path, img=None):
-    """_summary_
-
-    Args:
-        super_grid (numpy.array): _description_
-        img (image name, optional): _description_. Defaults to None.
-    """
-    fig, ax= plt.subplots()
-    step_size = 5
-
-    if img is not None:
-        plt.imshow(img)
-    
-    for grid in super_grid:
-        for row in grid:
-            for node in row:
-                plt.scatter(node.x, node.y, color="black", s=5)
-
-    for seeker in seekers:
-        [(seeker_x,seeker_y), z, seeker_orient, seeker_orient_uncertainty] = seekers[seeker]
-        ax.arrow(seeker_x, seeker_y, 2*step_size*np.cos(seeker_orient), 2*step_size*np.sin(seeker_orient), width=step_size/10, head_width=step_size/2, color='red')
-        thetas=np.linspace(0, 2*np.pi,100)
-        xs = [seeker_x+z*np.cos(thetas[i]) for i in range(100)]
-        ys = [seeker_y+z*np.sin(thetas[i]) for i in range(100)]
-        ax.plot(xs,ys,color='red')
-    
-    plt.show()
+    # with open(triangles_name, 'w', newline='') as file:
+    #     writer = csv.writer(file)
+    #     for triangle in triangle_sets:
+    #        writer.writerow(triangle)       
 
 
 def extract_arcs(csv_name):
@@ -460,17 +402,16 @@ def find_node_by_id(node_id, super_grid):
                     return (node.x, node.y, z)
     return None  # Return None if node ID is not found
 
-
-
 super_grid = setup(rows, cols)
+plot = False
 
-print(super_grid)
-display_grid(super_grid, img=sat_map)
-arc_dictionary = get_arcs(super_grid)
+if plot == True: 
+    path = extract_path('output_3x3.csv')
+    arcs = extract_arcs('Buckner_arcs_12_12.csv')
+    print(path)
+    plot_path(arcs, path, super_grid, img=sat_map)
+else: 
+    arc_dictionary = get_arcs(super_grid)
+    display_grid(super_grid, sat_map)
+    write_to_csv(SITUATION, super_grid, arc_dictionary)
 
-write_to_csv(SITUATION, super_grid, arc_dictionary)
-
-path = extract_path('output_3x3.csv')
-arcs = extract_arcs('Buckner_arcs_3_3.csv')
-print(path)
-plot_path(arcs, path, super_grid, img=sat_map)
