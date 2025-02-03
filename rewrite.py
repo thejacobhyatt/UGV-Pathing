@@ -17,7 +17,7 @@ from detection_funcs import get_audio_detection, seeker_orientation_uncertainty,
 SITUATION = "Buckner"
 SPACING = 10
 MAX_ELEVATION = 603
-DISTANCE_SCALE = 30
+DISTANCE_SCALE = 45
 GENERATOR_COEF = 5 # J per Second
 SPEED = 6.7 # m/s
 height_dic = {'charged':1.5, 'charging':1.5} #CONFIRM HEIGHTS - ASSUME 
@@ -133,25 +133,23 @@ class Node():
         # risk_level = 100
 
         # Energy cost
-        #if np.array_equal(position_self, position_neighbor):
-        #    energy_cost = 0
-        #else: 
-        #    heading = direction_of_travel(position_self,position_neighbor)
-        #    if heading == None:
-        #        heading = 1
-        #
-        #    params = [position_self, position_neighbor, travel_time, platform_name, added_mass, wind_velocity, wind_direction, heading, False]
-        #    fcns = [np, minimize, interp1d, math, os]
-        #    Jcon, Jgen, msg = exenf_cost(params,fcns)
+        if np.array_equal(position_self, position_neighbor):
+            energy_cost = 0
+        else: 
+            heading = direction_of_travel(position_self,position_neighbor)
+            if heading == None:
+                heading = 1
+        
+            params = [position_self, position_neighbor, travel_time, platform_name, added_mass, wind_velocity, wind_direction, heading, False]
+            fcns = [np, minimize, interp1d, math, os]
+            Jcon, Jgen, msg = exenf_cost(params,fcns)
+            Jgen = Jgen*(.25)
 
-        #    Jgen = Jgen*(.25)
+            energy_cost = Jcon - Jgen
             
-        #    if mode_of_travel == 'charging':
-        #        Jgen += GENERATOR_COEF
-        #    energy_cost = Jcon - Jgen
-        energy_cost = 100
-        if movement_code == 1:
-            energy_cost = 50
+            if mode_of_travel == 'charging':
+                Jgen += GENERATOR_COEF
+                energy_cost = Jcon - Jgen
 
         return risk_level, travel_time, energy_cost, movement_code
 
@@ -403,7 +401,7 @@ def find_node_by_id(node_id, super_grid):
     return None  # Return None if node ID is not found
 
 super_grid = setup(rows, cols)
-plot = False
+plot = True
 
 if plot == True: 
     path = extract_path('output_3x3.csv')
