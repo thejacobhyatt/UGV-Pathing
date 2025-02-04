@@ -143,7 +143,7 @@ class Node():
             params = [position_self, position_neighbor, travel_time, platform_name, added_mass, wind_velocity, wind_direction, heading, False]
             fcns = [np, minimize, interp1d, math, os]
             Jcon, Jgen, msg = exenf_cost(params,fcns)
-            Jgen = Jgen*(.25)
+            # Jgen = Jgen*(.25)
 
             energy_cost = Jcon - Jgen
             

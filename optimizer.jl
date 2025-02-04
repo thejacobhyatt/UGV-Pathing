@@ -5,7 +5,7 @@ const GRB_ENV = Gurobi.Env()
 scenario_name = "3x3"
 w=12
 h=12
-batteryCapacity = 100000
+batteryCapacity = 1000000
 
 dir2 = "./";
 tri= CSV.read("Buckner_tris_12_12.csv", DataFrame, header=0);
@@ -60,7 +60,7 @@ function write_path(opt_path, A)
 end
 
 #User Input and Initial Calculations
-τ = 60*60*60; #number of seconds to traverse the graph
+time_total = 10000000000; #number of seconds to traverse the graph
 # S_max=7
 # C_max=5
 s = 1 #the starting node of the troops
@@ -69,51 +69,44 @@ N=w*h*2;
 A = 2312
 
 
-function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, τ, inflow, outflow, batteryCapacity)
-    m1 = Model(() -> Gurobi.Optimizer(GRB_ENV))
+function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, inflow, outflow, batteryCapacity)
+    m = Model(() -> Gurobi.Optimizer(GRB_ENV))
     MAXTIME = 120
-    set_optimizer_attributes(m1, "TimeLimit" => MAXTIME, "MIPGap" => 1e-2, "OutputFlag" => 1)
+    set_optimizer_attributes(m, "TimeLimit" => MAXTIME, "MIPGap" => 1e-2, "OutputFlag" => 1)
 
     # Step 1: Minimize detection to find the least-detection path
-    @variable(m1, x[1:A], Bin)
-    @objective(m1, Min, sum(d[i] * x[i] for i in 1:A))
+    @variable(m, x[1:A], Bin)
+    @objective(m, Min, sum(d[i] * x[i] for i in 1:A))
 
-    @constraint(m1, [i in 1:N], sum(x[k] for k in inflow[i]) <= 1)
-    @constraint(m1, [i in 1:N], sum(x[k] for k in outflow[i]) <= 1)
-    @constraint(m1, [i in 1:N], 
+    @constraint(m, [i in 1:N], sum(x[k] for k in inflow[i]) <= 1)
+    @constraint(m, [i in 1:N], sum(x[k] for k in outflow[i]) <= 1)
+    @constraint(m, [i in 1:N], 
         sum(x[k] for k in inflow[i] if i != f && i != s) - 
         sum(x[k] for k in outflow[i] if i != f && i != s) == 0)
-    @constraint(m1, sum(x[k] for k in inflow[s]) - sum(x[k] for k in outflow[s]) == -1)
-    @constraint(m1, sum(x[k] for k in inflow[f]) - sum(x[k] for k in outflow[f]) == 1)
+
+    @constraint(m, sum(x[k] for k in inflow[s]) - sum(x[k] for k in outflow[s]) == -1)
+    @constraint(m, sum(x[k] for k in inflow[f]) - sum(x[k] for k in outflow[f]) == 1)
 
     tri_tot = length(tris)
-    @constraint(m1, [t in 1:tri_tot], sum(x[t] for t in tris[t]) <= 1) # triangles
-    @constraint(m1, sum(t[i] * x[i] for i in 1:A) <= τ) # time
+    @constraint(m, [t in 1:tri_tot], sum(x[t] for t in tris[t]) <= 1) # triangles
+    @constraint(m, sum(t[i] * x[i] for i in 1:A) <= time_total) # time constraint
 
+    @variable(m, batteryLevel[1:A])  # Battery level at each node
 
-    # Battery and energy tracking
-    @variable(m1, batteryLevel[1:A] >= 0) # Battery level at each step
-    @variable(m1, energyUsed[1:A] >= 0) # Energy used in each path transition
+    # Initialize battery level at the starting node
+    @constraint(m, batteryLevel[s] == batteryCapacity) 
     
-    # Initialize battery level
-    @constraint(m1, batteryLevel[1] == batteryCapacity) 
-
-    # Energy constraints: energy consumed per path transition
-    @constraint(m1, [i in 1:A], energyUsed[i] == E[i] * x[i])  # Energy consumption for each path
-
-    # Update battery level for each step
-    @constraint(m1, [i in 2:A], batteryLevel[i] == batteryLevel[i-1] - energyUsed[i])  # For i > 1
-
-    @constraint(m1, [i in 1:A], batteryLevel[i] >= 0) # Battery does not go below 0
-    @constraint(m1, [i in 1:A], batteryLevel[i] <= batteryCapacity) # Ensure battery level does not exceed capacity
-
-    # Insert code to handle jumps to top grid if needed (if there's logic for this)
-    # For example, if battery is low, some paths could be avoided.
-
-    optimize!(m1)
+    # Battery depletion constraint for all nodes except the start node
+    @constraint(m, [i in 2:N, j in outflow[i]], batteryLevel[j] == sum(batteryLevel[k] for k in inflow[i]) -  E[j] * x[j])
+    
+    # Ensure battery remains within limits
+    @constraint(m, [i in 1:A], batteryLevel[i] >= 0)
+    @constraint(m, [i in 1:A], batteryLevel[i] <= batteryCapacity)
+    
+    optimize!(m)
 
     optimal_path = value.(x)
-    final_objective = objective_value(m1)
+    final_objective = objective_value(m)
 
     println("Final energy cost: ", final_objective)
 
@@ -122,8 +115,9 @@ end
 
 
 
+
 @time begin
-    pathrob,sTime = two_step_optimization(w,h,s,f,A,N,D_lin,T_lin,E_lin,tris,τ,inflow,outflow, batteryCapacity)
+    pathrob,sTime = two_step_optimization(w,h,s,f,A,N,D_lin,T_lin,E_lin,tris,time_total,inflow,outflow, batteryCapacity)
     end 
 
 write_path(pathrob, A)
