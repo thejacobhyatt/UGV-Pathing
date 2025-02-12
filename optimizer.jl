@@ -95,18 +95,25 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
     # Time constraint
     @constraint(m, sum(t[i] * x[i] for i in 1:A) <= time_total)
 
-    # Battery level constraints
     @variable(m, batteryLevel[1:A] >= 0)  # Battery level at each node
     
-    # Initialize battery level at the starting node
-    @constraint(m, batteryLevel[s] == batteryCapacity)  # Battery starts full at the source node
+    # seperate constraint 
+    # do not want to iterate from arcs that point back at 1
+    # vice versa for the end node 
+    @constraint(m, batteryLevel[s] == batteryCapacity) # add a ghost arc that starts the battery level 
     
-        # Battery depletion propagation
-    for i in 1:N
-        for j in inflow[i]
-            @constraint(m, batteryLevel[j] == batteryLevel[i] - E[j] * x[j])
-        end
+    for i in 1:A
+        k = 1 # find the original node for arc i 
+        # ignore the start node 
+
+        @constraint(m, batteryLevel[i] == sum(batteryLevel[j] for j in inflow[k]) - E[i] * x[i])
     end
+
+    # for i in 1:N #arcs
+    #     for j in inflow[i]
+    #         @constraint(m, batteryLevel[j] == batteryLevel[i] - E[j] * x[j])
+    #     end
+    # end
 
     
     # Ensure battery does not exceed maximum capacity
