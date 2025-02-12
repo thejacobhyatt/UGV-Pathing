@@ -2,7 +2,7 @@ import numpy as np
 import math
 
 seeker_orientation_uncertainty = {'human': (62*np.pi/180)+np.pi/2, 'bunker': 62*np.pi/180} #Enemy capabilities will influence this (among other things), will likely need to expand dictionary and definitions for each key
-point_source_dic = {'charged': np.array([20/3, 10]), 'charging':np.array([40/3, 30])}
+point_source_dic = {'charged': np.array([20/3, 10]), 'charging':np.array([30/3, 10])}
 speed_dic = {'charged':1, 'charging':1} #VALIDATE THESE SPEEDS THROUGH TESTING!
 height_dic = {'charged':1.5, 'charging':1.5} #CONFIRM HEIGHTS - ASSUME 
 

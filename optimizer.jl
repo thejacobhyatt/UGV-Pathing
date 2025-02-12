@@ -5,7 +5,7 @@ const GRB_ENV = Gurobi.Env()
 scenario_name = "3x3"
 w=12
 h=12
-batteryCapacity = 1000000
+batteryCapacity = 10000
 
 dir2 = "./";
 tri= CSV.read("Buckner_tris_12_12.csv", DataFrame, header=0);
@@ -72,12 +72,13 @@ A = 2312
 function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, inflow, outflow, batteryCapacity)
     m = Model(() -> Gurobi.Optimizer(GRB_ENV))
     MAXTIME = 120
-    set_optimizer_attributes(m, "TimeLimit" => MAXTIME, "MIPGap" => 1e-2, "OutputFlag" => 1)
+    set_optimizer_attributes(m, "TimeLimit" => MAXTIME, "MIPGap" => 1e-5, "OutputFlag" => 1)
 
     # Step 1: Minimize detection to find the least-detection path
     @variable(m, x[1:A], Bin)
     @objective(m, Min, sum(d[i] * x[i] for i in 1:A))
 
+    # Flow constraints
     @constraint(m, [i in 1:N], sum(x[k] for k in inflow[i]) <= 1)
     @constraint(m, [i in 1:N], sum(x[k] for k in outflow[i]) <= 1)
     @constraint(m, [i in 1:N], 
@@ -87,24 +88,37 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
     @constraint(m, sum(x[k] for k in inflow[s]) - sum(x[k] for k in outflow[s]) == -1)
     @constraint(m, sum(x[k] for k in inflow[f]) - sum(x[k] for k in outflow[f]) == 1)
 
+    # Triangle constraints
     tri_tot = length(tris)
-    @constraint(m, [t in 1:tri_tot], sum(x[t] for t in tris[t]) <= 1) # triangles
-    @constraint(m, sum(t[i] * x[i] for i in 1:A) <= time_total) # time constraint
+    @constraint(m, [t in 1:tri_tot], sum(x[t] for t in tris[t]) <= 1) 
+    
+    # Time constraint
+    @constraint(m, sum(t[i] * x[i] for i in 1:A) <= time_total)
 
-    @variable(m, batteryLevel[1:A])  # Battery level at each node
-
+    # Battery level constraints
+    @variable(m, batteryLevel[1:A] >= 0)  # Battery level at each node
+    
     # Initialize battery level at the starting node
-    @constraint(m, batteryLevel[s] == batteryCapacity) 
+    @constraint(m, batteryLevel[s] == batteryCapacity)  # Battery starts full at the source node
     
-    # Battery depletion constraint for all nodes except the start node
-    @constraint(m, [i in 2:N, j in outflow[i]], batteryLevel[j] == sum(batteryLevel[k] for k in inflow[i]) -  E[j] * x[j])
+        # Battery depletion propagation
+    for i in 1:N
+        for j in inflow[i]
+            @constraint(m, batteryLevel[j] == batteryLevel[i] - E[j] * x[j])
+        end
+    end
+
     
-    # Ensure battery remains within limits
-    @constraint(m, [i in 1:A], batteryLevel[i] >= 0)
-    @constraint(m, [i in 1:A], batteryLevel[i] <= batteryCapacity)
+    # Ensure battery does not exceed maximum capacity
+    @constraint(m, [i in 1:N], batteryLevel[i] <= batteryCapacity)
     
+    # Ensure battery does not go below zero
+    @constraint(m, [i in 1:N], batteryLevel[i] >= 0)
+    
+    # Optimize the model
     optimize!(m)
 
+    # Extract the optimal path and final objective value
     optimal_path = value.(x)
     final_objective = objective_value(m)
 
@@ -112,9 +126,6 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
 
     return optimal_path, final_objective
 end
-
-
-
 
 @time begin
     pathrob,sTime = two_step_optimization(w,h,s,f,A,N,D_lin,T_lin,E_lin,tris,time_total,inflow,outflow, batteryCapacity)
