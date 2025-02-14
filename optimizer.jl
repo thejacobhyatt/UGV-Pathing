@@ -60,7 +60,7 @@ function write_path(opt_path, A)
 end
 
 #User Input and Initial Calculations
-time_total = 10000000000; #number of seconds to traverse the graph
+time_total = 100000; #number of seconds to traverse the graph
 # S_max=7
 # C_max=5
 s = 1 #the starting node of the troops
@@ -75,7 +75,10 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
     set_optimizer_attributes(m, "TimeLimit" => MAXTIME, "MIPGap" => 1e-5, "OutputFlag" => 1)
 
     # Step 1: Minimize detection to find the least-detection path
-    @variable(m, x[1:A], Bin)
+    # @variable(m, x[1:A], Bin)
+    @variable(m, x[1:(A+1)], Bin)  # Extend x to include the virtual arc
+
+
     @objective(m, Min, sum(d[i] * x[i] for i in 1:A))
 
     # Flow constraints
@@ -100,21 +103,24 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
     # seperate constraint 
     # do not want to iterate from arcs that point back at 1
     # vice versa for the end node 
-    @constraint(m, batteryLevel[s] == batteryCapacity) # add a ghost arc that starts the battery level 
+    # @constraint(m, batteryLevel[s] == batteryCapacity) # add a ghost arc that starts the battery level 
+    # Define a virtual arc index (A + 1) and add it to the model
+    fake_arc = A + 1  # An extra arc for battery initialization
     
-    for i in 1:A
-        k = 1 # find the original node for arc i 
-        # ignore the start node 
+    # Virtual arc constraint: Supplies batteryCapacity to start node
+    @constraint(m, batteryLevel[s] == batteryCapacity * x[fake_arc])
+    @constraint(m, x[fake_arc] == 1) # Ensure that this virtual arc is always chosen
+    push!(inflow[s], fake_arc)     # Modify inflow to account for the new virtual arc
 
-        @constraint(m, batteryLevel[i] == sum(batteryLevel[j] for j in inflow[k]) - E[i] * x[i])
+
+    for i in 1:A  # Iterate over arcs
+        k = arcs[i, "Column2"]  # Get the starting node of arc i
+    
+        if k != s  # Ignore the start node
+            @constraint(m, batteryLevel[i] == sum(batteryLevel[j] for j in inflow[k]) - E[i] * x[i])
+        end
     end
-
-    # for i in 1:N #arcs
-    #     for j in inflow[i]
-    #         @constraint(m, batteryLevel[j] == batteryLevel[i] - E[j] * x[j])
-    #     end
-    # end
-
+    
     
     # Ensure battery does not exceed maximum capacity
     @constraint(m, [i in 1:N], batteryLevel[i] <= batteryCapacity)
