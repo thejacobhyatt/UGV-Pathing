@@ -3,9 +3,9 @@ using JuMP, Gurobi, CSV, DataFrames
 const GRB_ENV = Gurobi.Env()
 
 scenario_name = "3x3"
-w=12
+WIDTH=12
 h=12
-batteryCapacity = 10000
+BATTERY_CAPACITY = 10000
 
 dir2 = "./";
 tri= CSV.read("Buckner_tris_12_12.csv", DataFrame, header=0);
@@ -103,7 +103,7 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
     # seperate constraint 
     # do not want to iterate from arcs that point back at 1
     # vice versa for the end node 
-    # @constraint(m, batteryLevel[s] == batteryCapacity) # add a ghost arc that starts the battery level 
+    # @constraint(m, batteryLevel[s] == BATTERY_CAPACITY) # add a ghost arc that starts the battery level 
     # Define a virtual arc index (A + 1) and add it to the model
     fake_arc = A + 1  # An extra arc for battery initialization
     
