@@ -90,6 +90,7 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
     optimize!(m)
     #time=MOI.get(m, MOI.SolveTime())
     D_opt=objective_value(m)
+    @variable(m, batteryLevel[1:A] >= 0)  # Battery level at each node
     
     @objective(m, Min, sum(E[i]*x[i] for i in 1:A))
     @constraint(m, sum(d[i]*x[i] for i in 1:A)<= 10*D_opt)
