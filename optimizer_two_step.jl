@@ -74,7 +74,7 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
     MAXTIME=600
     set_optimizer_attributes(m, "TimeLimit" => MAXTIME, "MIPGap" => 1e-4, "OutputFlag" => 0);
     @variable(m, x[1:A], Bin)
-    @objective(m, Min, sum(d[i]*x[i] for i in 1:A))
+    @objective(m, Min, sum(E[i]*x[i] for i in 1:A))
     
     @constraint(m, [i in 1:N], sum(x[k] for k in inflow[i])<=1)
     @constraint(m, [i in 1:N], sum(x[k] for k in outflow[i])<=1)
@@ -89,11 +89,12 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
     @constraint(m, sum(t[i]*x[i] for i=1:A) <= time_total)
     optimize!(m)
     #time=MOI.get(m, MOI.SolveTime())
-    D_opt=objective_value(m)
+    E_opt=objective_value(m)
     @variable(m, batteryLevel[1:A] >= 0)  # Battery level at each node
     
-    @objective(m, Min, sum(E[i]*x[i] for i in 1:A))
-    @constraint(m, sum(d[i]*x[i] for i in 1:A)<= 10*D_opt)
+    @objective(m, Min, sum(d[i]*x[i] for i in 1:A))
+    @constraint(m, sum(E[i]*x[i] for i in 1:A) >= .1*E_opt)
+    @constraint(m, sum(E[i]*x[i] for i in 1:A) <= 24*E_opt)
     @constraint(m, [i in 1:A], batteryLevel[i] >= 0)
     @constraint(m, [i in 1:A], batteryLevel[i] <= batteryCapacity)
     optimize!(m)

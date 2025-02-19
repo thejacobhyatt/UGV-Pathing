@@ -113,13 +113,13 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
     # push!(inflow[s], fake_arc)     # Modify inflow to account for the new virtual arc
 
 
-    # for i in 1:A  # Iterate over arcs
-    #    k = arcs[i, "Column2"]  # Get the starting node of arc i
+    for i in 1:A  # Iterate over arcs
+        k = arcs[i, "Column2"]  # Get the starting node of arc i
     
-    #    if k != s  # Ignore the start node
-    #        @constraint(m, batteryLevel[i] == sum(batteryLevel[j] for j in inflow[k]) - E[i] * x[i])
-    #    end
-    # end
+        if k != s  # Ignore the start node
+            @constraint(m, batteryLevel[i] == sum(batteryLevel[j] for j in inflow[k]) - E[i] * x[i])
+        end
+    end
     
     
     # Ensure battery does not exceed maximum capacity
