@@ -5,7 +5,7 @@ const GRB_ENV = Gurobi.Env()
 scenario_name = "3x3"
 w=12
 h=12
-batteryCapacity = 10000
+batteryCapacity = 1000
 
 dir2 = "./";
 tri= CSV.read("Buckner_tris_12_12.csv", DataFrame, header=0);
@@ -60,7 +60,7 @@ function write_path(opt_path, A)
 end
 
 #User Input and Initial Calculations
-time_total = 100000; #number of seconds to traverse the graph
+time_total = 1000000; #number of seconds to traverse the graph
 # S_max=7
 # C_max=5
 s = 1 #the starting node of the troops
@@ -76,7 +76,7 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
 
     # Step 1: Minimize detection to find the least-detection path
     # @variable(m, x[1:A], Bin)
-    @variable(m, x[1:(A+1)], Bin)  # Extend x to include the virtual arc
+    @variable(m, x[1:A], Bin)  # Extend x to include the virtual arc
 
 
     @objective(m, Min, sum(d[i] * x[i] for i in 1:A))
@@ -99,15 +99,16 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
     @constraint(m, sum(t[i] * x[i] for i in 1:A) <= time_total)
 
     @variable(m, batteryLevel[1:A] >= 0)  # Battery level at each node
+    @constraint(m, batteryLevel[s] == batteryCapacity)
+
     
     # seperate constraint 
     # do not want to iterate from arcs that point back at 1
     # vice versa for the end node 
-    @constraint(m, batteryLevel[s] == batteryCapacity) # add a ghost arc that starts the battery level 
+    # @constraint(m, batteryLevel[s] == batteryCapacity) # add a ghost arc that starts the battery level 
     # Define a virtual arc index (A + 1) and add it to the model
     # fake_arc = A + 1  # An extra arc for battery initialization
     
-    # Virtual arc constraint: Supplies batteryCapacity to start node
     # @constraint(m, batteryLevel[s] == batteryCapacity * x[fake_arc])
     # @constraint(m, x[fake_arc] == 1) # Ensure that this virtual arc is always chosen
     # push!(inflow[s], fake_arc)     # Modify inflow to account for the new virtual arc
@@ -115,18 +116,17 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
 
     for i in 1:A  # Iterate over arcs
         k = arcs[i, "Column2"]  # Get the starting node of arc i
-    
         if k != s  # Ignore the start node
-            @constraint(m, batteryLevel[i] == sum(batteryLevel[j] for j in inflow[k]) - E[i] * x[i])
+            @constraint(m, batteryLevel[i] == sum(x[j]*batteryLevel[j] for j in inflow[k]) - E[i] * x[i])
         end
     end
     
     
     # Ensure battery does not exceed maximum capacity
-    @constraint(m, [i in 1:N], batteryLevel[i] <= batteryCapacity)
+    @constraint(m, [i in 1:A], batteryLevel[i] <= batteryCapacity)
     
     # Ensure battery does not go below zero
-    @constraint(m, [i in 1:N], batteryLevel[i] >= 0)
+    @constraint(m, [i in 1:A], batteryLevel[i] >= 0)
     
     # Optimize the model
     optimize!(m)
