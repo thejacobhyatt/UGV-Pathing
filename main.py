@@ -15,7 +15,7 @@ from detection_funcs import get_audio_detection, seeker_orientation_uncertainty,
 
 # Constants 
 SITUATION = "Buckner"
-SPACING = 10
+SPACING = 5
 MAX_ELEVATION = 603
 DISTANCE_SCALE = 45
 GENERATOR_COEF = 5 # J per Second
@@ -401,7 +401,7 @@ def find_node_by_id(node_id, super_grid):
     return None  # Return None if node ID is not found
 
 super_grid = setup(rows, cols)
-plot = True
+plot = False
 
 if plot == True: 
     path = extract_path('output_3x3.csv')

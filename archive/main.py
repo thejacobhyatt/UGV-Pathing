@@ -105,8 +105,8 @@ map_length_scale=(map_length_pixels-1)/desired_map_length #calculate scaling fac
 nodes_wide=int(desired_map_length/step_size)+1 #how many node columns
 nodes_long=int(desired_map_length/step_size)+1 #how many node rows
 
-nodes_wide = 3
-nodes_long = 3
+nodes_wide = 24
+nodes_long = 24
 
 chance_snow = 0
 chance_rain = 0 
