@@ -15,7 +15,7 @@ from detection_funcs import get_audio_detection, seeker_orientation_uncertainty,
 
 # Constants 
 SITUATION = "Buckner"
-SPACING = 5
+SPACING = 10
 MAX_ELEVATION = 603
 DISTANCE_SCALE = 45
 GENERATOR_COEF = 5 # J per Second
@@ -40,7 +40,9 @@ N = rows * cols * 2
 
 
 # Seekers 
-seekers={1 : [(60,60), 5, 0, seeker_orientation_uncertainty['human']]}
+seekers={1 : [(60,60), 5, 0, seeker_orientation_uncertainty['human']],
+         2 : [(30,30), 5, np.pi/2, seeker_orientation_uncertainty['human']],
+         3 : [(90,90), 5, np.pi/2, seeker_orientation_uncertainty['human']]}
 
 class Node():
     def __init__(self, node_id, x, y, z=0, e=0, v=0):
@@ -401,10 +403,10 @@ def find_node_by_id(node_id, super_grid):
     return None  # Return None if node ID is not found
 
 super_grid = setup(rows, cols)
-plot = False
+plot = True
 
 if plot == True: 
-    path = extract_path('output_3x3.csv')
+    path = extract_path('output_12x12.csv')
     arcs = extract_arcs('Buckner_arcs_12_12.csv')
     print(path)
     plot_path(arcs, path, super_grid, img=sat_map)

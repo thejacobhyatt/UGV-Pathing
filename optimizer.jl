@@ -2,10 +2,10 @@ using JuMP, Gurobi, CSV, DataFrames
 
 const GRB_ENV = Gurobi.Env()
 
-scenario_name = "3x3"
+scenario_name = "12x12"
 w=12
 h=12
-batteryCapacity = 1000
+batteryCapacity = 7500
 
 dir2 = "./";
 tri= CSV.read("Buckner_tris_12_12.csv", DataFrame, header=0);
@@ -71,7 +71,7 @@ A = 2312
 
 function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, inflow, outflow, batteryCapacity)
     m = Model(() -> Gurobi.Optimizer(GRB_ENV))
-    MAXTIME = 120
+    MAXTIME = 600
     set_optimizer_attributes(m, "TimeLimit" => MAXTIME, "MIPGap" => 1e-5, "OutputFlag" => 1)
 
     # Step 1: Minimize detection to find the least-detection path
