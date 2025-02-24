@@ -5,7 +5,7 @@ const GRB_ENV = Gurobi.Env()
 scenario_name = "12x12"
 w=12
 h=12
-batteryCapacity = 7500
+batteryCapacity = 250
 
 dir2 = "./";
 tri= CSV.read("Buckner_tris_12_12.csv", DataFrame, header=0);
@@ -96,10 +96,48 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
     @constraint(m, [t in 1:tri_tot], sum(x[t] for t in tris[t]) <= 1) 
     
     # Time constraint
-    @constraint(m, sum(t[i] * x[i] for i in 1:A) <= time_total)
+    # @constraint(m, sum(t[i] * x[i] for i in 1:A) <= time_total)
 
     @variable(m, batteryLevel[1:A] >= 0)  # Battery level at each node
     @constraint(m, batteryLevel[s] == batteryCapacity)
+
+
+
+    # for i in 1:A  # Iterate over arcs
+    #     k = arcs[i, "Column2"]  # Get the starting node of arc i
+    #     if k != s  # Ignore the start node
+    #         @constraint(m, batteryLevel[i] == sum(x[j]*batteryLevel[j] for j in inflow[k]) - E[i] * x[i])
+    #     end
+    # end
+    
+    
+    # Ensure battery does not exceed maximum capacity
+    @constraint(m, [i in 1:A], sum(E[i] * x[i]) <= batteryCapacity)
+    
+    # Ensure battery does not go below zero
+    @constraint(m, [i in 1:A], batteryLevel[i] >= 0)
+    
+    # Optimize the model
+    optimize!(m)
+
+    # Extract the optimal path and final objective value
+    optimal_path = value.(x)
+    final_objective = objective_value(m)
+
+    final_detection_cost = sum(d[i] * value(x[i]) for i in 1:A)
+    println("Final detection cost: ", final_detection_cost)
+    final_energy_cost = sum(E[i] * value(x[i]) for i in 1:A)
+    println("Final energy cost: ", final_energy_cost)
+
+    return optimal_path, final_objective
+end
+
+@time begin
+    pathrob,sTime = two_step_optimization(w,h,s,f,A,N,D_lin,T_lin,E_lin,tris,time_total,inflow,outflow, batteryCapacity)
+    end 
+
+write_path(pathrob, A)
+
 
     
     # seperate constraint 
@@ -112,36 +150,3 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
     # @constraint(m, batteryLevel[s] == batteryCapacity * x[fake_arc])
     # @constraint(m, x[fake_arc] == 1) # Ensure that this virtual arc is always chosen
     # push!(inflow[s], fake_arc)     # Modify inflow to account for the new virtual arc
-
-
-    for i in 1:A  # Iterate over arcs
-        k = arcs[i, "Column2"]  # Get the starting node of arc i
-        if k != s  # Ignore the start node
-            @constraint(m, batteryLevel[i] == sum(x[j]*batteryLevel[j] for j in inflow[k]) - E[i] * x[i])
-        end
-    end
-    
-    
-    # Ensure battery does not exceed maximum capacity
-    @constraint(m, [i in 1:A], batteryLevel[i] <= batteryCapacity)
-    
-    # Ensure battery does not go below zero
-    @constraint(m, [i in 1:A], batteryLevel[i] >= 0)
-    
-    # Optimize the model
-    optimize!(m)
-
-    # Extract the optimal path and final objective value
-    optimal_path = value.(x)
-    final_objective = objective_value(m)
-
-    println("Final energy cost: ", final_objective)
-
-    return optimal_path, final_objective
-end
-
-@time begin
-    pathrob,sTime = two_step_optimization(w,h,s,f,A,N,D_lin,T_lin,E_lin,tris,time_total,inflow,outflow, batteryCapacity)
-    end 
-
-write_path(pathrob, A)

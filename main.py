@@ -150,7 +150,7 @@ class Node():
             energy_cost = Jcon - Jgen
             
             if mode_of_travel == 'charging':
-                Jgen += GENERATOR_COEF
+                Jgen += GENERATOR_COEF * travel_time
                 energy_cost = Jcon - Jgen
 
         return risk_level, travel_time, energy_cost, movement_code
@@ -339,13 +339,15 @@ def write_to_csv(situation_name, super_grid, arc_dictionary):
 
 def extract_arcs(csv_name):
     arcs = {}
+    energy_cost = []
     with open(csv_name, mode="r") as file:
         reader = csv.reader(file)
         for row in reader:
             key = int(row[0])  # First column as key
             value = (int(row[1]), int(row[2]))  # Tuple of second and third columns
+            energy_cost.append(float(row[5]))
             arcs[key] = value
-    return arcs
+    return arcs,energy_cost
 
 def extract_path(csv_name):
     path = []
@@ -386,9 +388,13 @@ def plot_path(arcs, path, super_grid, img):
     nodes = [coord for arc in path for coord in arcs[arc]]
     x_coords, y_coords, z = zip(*[find_node_by_id(node, super_grid) for node in nodes])
 
+    x_coords = [x - 144 if x > 144 else x for x in x_coords]
+    y_coords = [y - 144 if y > 144 else y for y in y_coords]
 
     for i in range(len(x_coords) - 1):
+
         color = 'green' if z[i] == 1 else 'blue'  # Use red for z=1, blue otherwise
+
         ax.plot([x_coords[i], x_coords[i + 1]], [y_coords[i], y_coords[i + 1]], color=color, linewidth=3)
 
     plt.show()
@@ -402,13 +408,90 @@ def find_node_by_id(node_id, super_grid):
                     return (node.x, node.y, z)
     return None  # Return None if node ID is not found
 
+def plot_battery(path, energy_cost):
+    energy_for_path = []
+    for p in path:
+        energy_for_path.append(energy_cost[int(p-1)])
+
+    plt.bar(range(len(energy_for_path)), energy_for_path)
+    plt.xlabel("Step")
+    plt.ylabel("Cost Per Step")
+    plt.title("Battery Cost Per Step")
+    plt.show()
+    print(sum(energy_for_path))
+
+    return (energy_for_path)
+
+def plot_energy(energy_cost):
+    plt.bar(range(len(energy_cost)), energy_cost)
+    plt.show()
+    print(sum(energy_cost))
+    return (energy_cost)
+
+
+def plot_battery_depletion(battery_capacity, energy_cost):
+    battery_levels = [battery_capacity]  # Start with full battery
+    
+    energy_for_path = []
+    for p in path:
+        energy_for_path.append(energy_cost[int(p-1)])
+
+    for energy in energy_for_path:
+        battery_levels.append(battery_levels[-1] - energy)
+
+    steps = list(range(len(battery_levels)))
+
+    plt.plot(steps, battery_levels, marker='o', linestyle='-', color='b', label="Battery Level")
+    plt.axhline(y=0, color='r', linestyle='--', label="Empty Battery")
+    
+    plt.xlabel("Step")
+    plt.ylabel("Battery Level")
+    plt.title("Battery Depletion Over Step")
+    plt.legend()
+    plt.grid(True)
+    
+    plt.show()
+
+def order_path(arcs, path):
+    result = {}
+    for p in path:
+        result[p] = arcs[p]
+
+    ordered_arcs = []
+    
+    arc_items = list(result.items())
+    
+    start_arc = arc_items[0]
+    ordered_arcs.append(start_arc)
+    arc_items.remove(start_arc)
+
+    while arc_items:
+        # Find the next arc that starts where the last one ends
+        for arc in arc_items:
+            if ordered_arcs[-1][1][1] == arc[1][0]:  # Check if the end of the last arc matches the start of the current arc
+                ordered_arcs.append(arc)
+                arc_items.remove(arc)  # Remove the arc once it's added
+                break
+    
+    # Return the ordered arcs (just the values)
+    ordered_arcs_with_values = [arc[0] for arc in ordered_arcs]
+    print(ordered_arcs_with_values)
+    return ordered_arcs_with_values
+
+
+        
+
 super_grid = setup(rows, cols)
 plot = True
 
+
 if plot == True: 
     path = extract_path('output_12x12.csv')
-    arcs = extract_arcs('Buckner_arcs_12_12.csv')
-    print(path)
+    arcs,energy_cost = extract_arcs('Buckner_arcs_12_12.csv')
+    # print(energy_cost)
+    print(plot_battery(path, energy_cost))
+    plot_battery_depletion(500, energy_cost)
+    path = order_path(arcs, path)
     plot_path(arcs, path, super_grid, img=sat_map)
 else: 
     arc_dictionary = get_arcs(super_grid)
