@@ -40,9 +40,9 @@ N = rows * cols * 2
 
 
 # Seekers 
-seekers={1 : [(60,60), 5, 0, seeker_orientation_uncertainty['human']],
-         2 : [(30,30), 5, np.pi/2, seeker_orientation_uncertainty['human']],
-         3 : [(90,90), 5, np.pi/2, seeker_orientation_uncertainty['human']]}
+seekers={1 : [(60,60), 2, 0, seeker_orientation_uncertainty['human']],
+         2 : [(30,30), 2, np.pi/2, seeker_orientation_uncertainty['human']],
+         3 : [(90,90), 2, np.pi/2, seeker_orientation_uncertainty['human']]}
 
 class Node():
     def __init__(self, node_id, x, y, z=0, e=0, v=0):

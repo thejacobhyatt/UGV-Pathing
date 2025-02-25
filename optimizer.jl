@@ -5,7 +5,7 @@ const GRB_ENV = Gurobi.Env()
 scenario_name = "12x12"
 w=12
 h=12
-batteryCapacity = 250
+batteryCapacity = 100000
 
 dir2 = "./";
 tri= CSV.read("Buckner_tris_12_12.csv", DataFrame, header=0);
@@ -61,8 +61,7 @@ end
 
 #User Input and Initial Calculations
 time_total = 1000000; #number of seconds to traverse the graph
-# S_max=7
-# C_max=5
+
 s = 1 #the starting node of the troops
 f = 144 #the destination node of the troops
 N=w*h*2;
@@ -88,6 +87,7 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
         sum(x[k] for k in inflow[i] if i != f && i != s) - 
         sum(x[k] for k in outflow[i] if i != f && i != s) == 0)
 
+    # split these into 4 seperate constraints
     @constraint(m, sum(x[k] for k in inflow[s]) - sum(x[k] for k in outflow[s]) == -1)
     @constraint(m, sum(x[k] for k in inflow[f]) - sum(x[k] for k in outflow[f]) == 1)
 
@@ -99,20 +99,25 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
     # @constraint(m, sum(t[i] * x[i] for i in 1:A) <= time_total)
 
     @variable(m, batteryLevel[1:A] >= 0)  # Battery level at each node
+    
+    
+    # redefine this so that batterycap is == outflow
     @constraint(m, batteryLevel[s] == batteryCapacity)
 
 
 
-    # for i in 1:A  # Iterate over arcs
-    #     k = arcs[i, "Column2"]  # Get the starting node of arc i
-    #     if k != s  # Ignore the start node
-    #         @constraint(m, batteryLevel[i] == sum(x[j]*batteryLevel[j] for j in inflow[k]) - E[i] * x[i])
-    #     end
-    # end
-    
+    for i in 1:A  # Iterate over arcs
+        k = arcs[i, "Column2"]  # Get the starting node of arc i
+        if k != s  # Ignore the start node
+            @constraint(m, batteryLevel[i] == sum(x[j]*batteryLevel[j] for j in inflow[k]) - E[i] * x[i])
+        end
+    end
+
+    # Newest Constraint
+    # @constraint(m, sum(x[i]*batteryLevel[i] for i in 1:A) <= batteryCapacity)
     
     # Ensure battery does not exceed maximum capacity
-    @constraint(m, [i in 1:A], sum(E[i] * x[i]) <= batteryCapacity)
+    @constraint(m, [i in 1:A],  sum(E[i] * x[i]) <= batteryCapacity)
     
     # Ensure battery does not go below zero
     @constraint(m, [i in 1:A], batteryLevel[i] >= 0)
@@ -128,6 +133,7 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
     println("Final detection cost: ", final_detection_cost)
     final_energy_cost = sum(E[i] * value(x[i]) for i in 1:A)
     println("Final energy cost: ", final_energy_cost)
+    # println((i,value(batteryLevel[i])) for i in 1:A)
 
     return optimal_path, final_objective
 end
