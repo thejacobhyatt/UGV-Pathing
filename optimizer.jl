@@ -5,7 +5,7 @@ const GRB_ENV = Gurobi.Env()
 scenario_name = "12x12"
 w=12
 h=12
-batteryCapacity = 100000
+batteryCapacity = 2800
 
 dir2 = "./";
 tri= CSV.read("Buckner_tris_12_12.csv", DataFrame, header=0);
@@ -87,9 +87,12 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
         sum(x[k] for k in inflow[i] if i != f && i != s) - 
         sum(x[k] for k in outflow[i] if i != f && i != s) == 0)
 
-    # split these into 4 seperate constraints
-    @constraint(m, sum(x[k] for k in inflow[s]) - sum(x[k] for k in outflow[s]) == -1)
-    @constraint(m, sum(x[k] for k in inflow[f]) - sum(x[k] for k in outflow[f]) == 1)
+    # Flow constraints for start and end nodes 
+    @constraint(m, sum(x[k] for k in inflow[s]) == 0)
+    @constraint(m, sum(x[k] for k in outflow[s]) == 1)
+
+    @constraint(m, sum(x[k] for k in inflow[f]) == 1)
+    @constraint(m, sum(x[k] for k in outflow[f]) == 0)
 
     # Triangle constraints
     tri_tot = length(tris)
@@ -104,20 +107,30 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
     # redefine this so that batterycap is == outflow
     @constraint(m, batteryLevel[s] == batteryCapacity)
 
-
+    # for i in 1:A  # Iterate over arcs
+    #     k = arcs[i, "Column2"]  # Get the starting node of arc i
+    #     if k != s  # Ignore the start node
+    #         @constraint(m, batteryLevel[i] == sum(x[j]*batteryLevel[j] for j in inflow[k]) - E[i] * x[i])
+    #     end
+    # end
 
     for i in 1:A  # Iterate over arcs
         k = arcs[i, "Column2"]  # Get the starting node of arc i
         if k != s  # Ignore the start node
-            @constraint(m, batteryLevel[i] == sum(x[j]*batteryLevel[j] for j in inflow[k]) - E[i] * x[i])
+            @constraint(m, batteryLevel[i] == sum(batteryLevel[j] - E[j] * x[j] for j in inflow[k] if x[j] == 1))
         end
     end
+    
+    @constraint(m, [i in 1:A], batteryLevel[i] <= batteryCapacity)
+    # @constraint(m, [i in 1:A], batteryLevel[i] >= 0)
 
     # Newest Constraint
-    # @constraint(m, sum(x[i]*batteryLevel[i] for i in 1:A) <= batteryCapacity)
+    @constraint(m, sum(x[i]*batteryLevel[i] for i in 1:A) <= batteryCapacity)
+    # @constraint(m, [i in 1:A],  sum(batteryLevel[i] * x[i]) <= batteryCapacity)
+
     
     # Ensure battery does not exceed maximum capacity
-    @constraint(m, [i in 1:A],  sum(E[i] * x[i]) <= batteryCapacity)
+    # @constraint(m, [i in 1:A],  sum(E[i] * x[i]) <= batteryCapacity)
     
     # Ensure battery does not go below zero
     @constraint(m, [i in 1:A], batteryLevel[i] >= 0)
