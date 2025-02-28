@@ -5,7 +5,7 @@ const GRB_ENV = Gurobi.Env()
 scenario_name = "12x12"
 w=12
 h=12
-batteryCapacity = 2800
+batteryCapacity = 2500
 
 dir2 = "./";
 tri= CSV.read("Buckner_tris_12_12.csv", DataFrame, header=0);
@@ -74,7 +74,6 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
     set_optimizer_attributes(m, "TimeLimit" => MAXTIME, "MIPGap" => 1e-5, "OutputFlag" => 1)
 
     # Step 1: Minimize detection to find the least-detection path
-    # @variable(m, x[1:A], Bin)
     @variable(m, x[1:A], Bin)  # Extend x to include the virtual arc
 
 
@@ -104,8 +103,8 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
     @variable(m, batteryLevel[1:A] >= 0)  # Battery level at each node
     
     
-    # redefine this so that batterycap is == outflow
-    @constraint(m, batteryLevel[s] == batteryCapacity)
+    # Setting the start outflow
+    @constraint(m, [i in outflow[s]], batteryLevel[i] == batteryCapacity * x[i])
 
     # for i in 1:A  # Iterate over arcs
     #     k = arcs[i, "Column2"]  # Get the starting node of arc i
@@ -117,7 +116,7 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
     for i in 1:A  # Iterate over arcs
         k = arcs[i, "Column2"]  # Get the starting node of arc i
         if k != s  # Ignore the start node
-            @constraint(m, batteryLevel[i] == sum(batteryLevel[j] - E[j] * x[j] for j in inflow[k] if x[j] == 1))
+            @constraint(m, batteryLevel[i] == (sum(batteryLevel[j] for j in inflow[k]) - E[i]) * x[i])
         end
     end
     
@@ -125,9 +124,10 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
     # @constraint(m, [i in 1:A], batteryLevel[i] >= 0)
 
     # Newest Constraint
-    @constraint(m, sum(x[i]*batteryLevel[i] for i in 1:A) <= batteryCapacity)
-    # @constraint(m, [i in 1:A],  sum(batteryLevel[i] * x[i]) <= batteryCapacity)
+    @constraint(m, sum(x[i]*E[i] for i in 1:A) <= batteryCapacity)
 
+    # PROBLEM CONSTRAINT
+    # @constraint(m, [i in 1:A], batteryLevel[i] <= x[i]*batteryCapacity)
     
     # Ensure battery does not exceed maximum capacity
     # @constraint(m, [i in 1:A],  sum(E[i] * x[i]) <= batteryCapacity)
@@ -147,6 +147,13 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
     final_energy_cost = sum(E[i] * value(x[i]) for i in 1:A)
     println("Final energy cost: ", final_energy_cost)
     # println((i,value(batteryLevel[i])) for i in 1:A)
+
+    # Extract battery levels for all arcs
+    # battery_levels = [(i, value(batteryLevel[i]) , value(x[i])) for i in 1:A]
+    # df = DataFrame(Arc=first.(battery_levels), BatteryLevel=last.(battery_levels))
+    df = DataFrame(Arc=[i for i in 1:A], BatteryLevel=[value(batteryLevel[i]) for i in 1:A], Path=[value(x[i]) for i in 1:A])
+
+    CSV.write("battery_levels.csv", df)
 
     return optimal_path, final_objective
 end
