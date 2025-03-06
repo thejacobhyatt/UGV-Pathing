@@ -15,9 +15,9 @@ from detection_funcs import get_audio_detection, seeker_orientation_uncertainty,
 
 # Constants 
 SITUATION = "Buckner"
-SPACING = 10
+SPACING = 8
 MAX_ELEVATION = 603
-DISTANCE_SCALE = 45
+DISTANCE_SCALE = 30
 GENERATOR_COEF = 5 # J per Second
 SPEED = 6.7 # m/s
 height_dic = {'charged':1.5, 'charging':1.5} #CONFIRM HEIGHTS - ASSUME 
@@ -40,9 +40,9 @@ N = rows * cols * 2
 
 
 # Seekers 
-seekers={1 : [(60,60), 2, 0, seeker_orientation_uncertainty['human']],
-         2 : [(30,30), 2, np.pi/2, seeker_orientation_uncertainty['human']],
-         3 : [(90,90), 2, np.pi/2, seeker_orientation_uncertainty['human']]}
+seekers={1 : [(60,60), 4, 0, seeker_orientation_uncertainty['human']],
+         2 : [(30,30), 4, np.pi/2, seeker_orientation_uncertainty['human']],
+         3 : [(90,90), 4, 3*np.pi/4, seeker_orientation_uncertainty['human']]}
 
 class Node():
     def __init__(self, node_id, x, y, z=0, e=0, v=0):
@@ -482,7 +482,7 @@ def order_path(arcs, path):
         
 
 super_grid = setup(rows, cols)
-plot = True
+plot = False
 
 
 if plot == True: 
