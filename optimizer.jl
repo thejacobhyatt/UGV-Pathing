@@ -5,7 +5,7 @@ const GRB_ENV = Gurobi.Env()
 scenario_name = "12x12"
 w=12
 h=12
-batteryCapacity = 2500
+batteryCapacity = 1500
 
 dir2 = "./";
 tri= CSV.read("Buckner_tris_12_12.csv", DataFrame, header=0);
