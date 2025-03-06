@@ -105,8 +105,8 @@ map_length_scale=(map_length_pixels-1)/desired_map_length #calculate scaling fac
 nodes_wide=int(desired_map_length/step_size)+1 #how many node columns
 nodes_long=int(desired_map_length/step_size)+1 #how many node rows
 
-nodes_wide = 12
-nodes_long = 12
+nodes_wide = 15
+nodes_long = 15
 
 chance_snow = 0
 chance_rain = 0 
@@ -1925,4 +1925,4 @@ def calculateDetection(situation_name):
     return 1 - no_detection_prob
 
 
-write_csv_files('3x3')
+write_csv_files('15x15')
