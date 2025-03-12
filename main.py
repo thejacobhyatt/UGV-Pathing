@@ -126,7 +126,7 @@ class Node():
             mode_of_travel='charging'
             movement_code=1
 
-        # Risk level (placeholder logic for visual/audio detection)
+        # Risk level 
         
         visual_detection = get_visual_detection(position_self,position_neighbor, mode_of_travel, travel_time, seeker_groups, seekers, elevation_map, MAX_ELEVATION,vegetation_map,DISTANCE_SCALE)
         audio_detection = get_audio_detection(position_self,position_neighbor,mode_of_travel,seeker_groups, vegetation_map,DISTANCE_SCALE)        
@@ -409,6 +409,75 @@ def plot_path(arcs, path, super_grid, img, LEVELS = 20):
     plt.show()
 
 
+def plot_detection_field(arcs, path, super_grid, img, mode_of_travel='charging', travel_time=100):
+    fig, ax = plt.subplots()
+    step_size = 5
+    seeker_groups = {templated_seeker: get_seeker_group(seekers[templated_seeker], elevation_map, MAX_ELEVATION) for templated_seeker in seekers}
+
+    # Plot Image
+    ax.imshow(img)
+    
+    # Plot Nodes
+    for grid in super_grid:
+        for row in grid:
+            for node in row:
+                ax.scatter(node.x, node.y, color="black", s=5)
+
+    # Plot Seekers
+    for seeker in seekers:
+        (seeker_x, seeker_y), z, seeker_orient, _ = seekers[seeker]
+        ax.arrow(seeker_x, seeker_y, 2 * step_size * np.cos(seeker_orient), 2 * step_size * np.sin(seeker_orient),
+                 width=step_size / 10, head_width=step_size / 2, color='red')
+
+        thetas = np.linspace(0, 2 * np.pi, 100)
+        xs = [seeker_x + z * np.cos(theta) for theta in thetas]
+        ys = [seeker_y + z * np.sin(theta) for theta in thetas]
+        ax.plot(xs, ys, color='red')
+
+    # Path Code 
+    nodes = [coord for arc in path for coord in arcs[arc]]
+    x_coords, y_coords, z = zip(*[find_node_by_id(node, super_grid) for node in nodes])
+
+    x_coords = [x - 144 if x > 144 else x for x in x_coords]
+    y_coords = [y - 144 if y > 144 else y for y in y_coords]
+
+    for i in range(len(x_coords) - 1):
+        color = 'green' if z[i] == 1 else 'blue'  # Use green for z=1, blue otherwise
+        ax.plot([x_coords[i], x_coords[i + 1]], [y_coords[i], y_coords[i + 1]], color=color, linewidth=3)
+
+    # Extract Red Channel for Elevation
+    Z = elevation_map[:, :, 0] // 30
+
+    # Generate Grid Coordinates
+    x = np.arange(Z.shape[1]) // 30
+    y = np.arange(Z.shape[0]) // 30
+    X, Y = np.meshgrid(x, y)
+
+    # Compute Detection Fields
+    risk_levels = np.zeros_like(Z, dtype=float)  # Initialize risk map
+
+    for i in tqdm(range(Z.shape[0]), desc="Processing Detection Fields"):
+        for j in range(Z.shape[1]):
+            position_self = (X[i, j], Y[i, j], Z[i, j])
+
+            # Estimate neighbor positions (4-connectivity)
+            neighbors = [(i + dx, j + dy) for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]
+                         if 0 <= i + dx < Z.shape[0] and 0 <= j + dy < Z.shape[1]]
+
+            for ni, nj in neighbors:
+                position_neighbor = (X[ni, nj], Y[ni, nj], Z[ni, nj])
+
+                visual_detection = get_visual_detection(position_self, position_neighbor, mode_of_travel, travel_time, seeker_groups, seekers, elevation_map, MAX_ELEVATION, vegetation_map, DISTANCE_SCALE)
+                audio_detection = get_audio_detection(position_self, position_neighbor, mode_of_travel, seeker_groups, vegetation_map, DISTANCE_SCALE)        
+
+                # Store the maximum detection risk
+                risk_levels[i, j] = max(risk_levels[i, j], visual_detection, audio_detection)
+
+    # Plot Detection Field Heatmap
+    contour = ax.contourf(X, Y, risk_levels, levels=20, cmap="Reds", alpha=0.6)
+    plt.colorbar(contour, ax=ax, label="Detection Risk Level")
+    plt.show()
+
 def find_node_by_id(node_id, super_grid):
     for z in range(len(super_grid)): 
         for row in super_grid[z]:
@@ -501,7 +570,9 @@ if plot == True:
     # print(plot_battery(path, energy_cost))
     # plot_battery_depletion(500, energy_cost)
     path = order_path(arcs, path)
-    plot_path(arcs, path, super_grid, img=sat_map)
+    # plot_path(arcs, path, super_grid, img=sat_map)
+    plot_detection_field(arcs, path, super_grid, img=sat_map, mode_of_travel='charging', travel_time=100)
+
 else: 
     arc_dictionary = get_arcs(super_grid)
     display_grid(super_grid, sat_map)
