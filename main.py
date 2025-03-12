@@ -130,7 +130,11 @@ class Node():
         
         visual_detection = get_visual_detection(position_self,position_neighbor, mode_of_travel, travel_time, seeker_groups, seekers, elevation_map, MAX_ELEVATION,vegetation_map,DISTANCE_SCALE)
         audio_detection = get_audio_detection(position_self,position_neighbor,mode_of_travel,seeker_groups, vegetation_map,DISTANCE_SCALE)        
-        risk_level = max(visual_detection, audio_detection)
+        # risk_level = max(visual_detection, audio_detection)
+       
+        # Generalize to parameters later
+        risk_level = .5* visual_detection + .5*audio_detection
+
 
         # risk_level = 100
 
@@ -459,19 +463,13 @@ def plot_detection_field(arcs, path, super_grid, img, mode_of_travel='charging',
     for i in tqdm(range(Z.shape[0]), desc="Processing Detection Fields"):
         for j in range(Z.shape[1]):
             position_self = (X[i, j], Y[i, j], Z[i, j])
+            position_neighbor = position_self
 
-            # Estimate neighbor positions (4-connectivity)
-            neighbors = [(i + dx, j + dy) for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]
-                         if 0 <= i + dx < Z.shape[0] and 0 <= j + dy < Z.shape[1]]
+            visual_detection = get_visual_detection(position_self, position_neighbor, mode_of_travel, travel_time, seeker_groups, seekers, elevation_map, MAX_ELEVATION, vegetation_map, DISTANCE_SCALE)
+            audio_detection = get_audio_detection(position_self, position_neighbor, mode_of_travel, seeker_groups, vegetation_map, DISTANCE_SCALE)        
 
-            for ni, nj in neighbors:
-                position_neighbor = (X[ni, nj], Y[ni, nj], Z[ni, nj])
-
-                visual_detection = get_visual_detection(position_self, position_neighbor, mode_of_travel, travel_time, seeker_groups, seekers, elevation_map, MAX_ELEVATION, vegetation_map, DISTANCE_SCALE)
-                audio_detection = get_audio_detection(position_self, position_neighbor, mode_of_travel, seeker_groups, vegetation_map, DISTANCE_SCALE)        
-
-                # Store the maximum detection risk
-                risk_levels[i, j] = max(risk_levels[i, j], visual_detection, audio_detection)
+            # Store the maximum detection risk
+            risk_levels[i, j] = max(risk_levels[i, j], visual_detection, audio_detection)
 
     # Plot Detection Field Heatmap
     contour = ax.contourf(X, Y, risk_levels, levels=20, cmap="Reds", alpha=0.6)
@@ -570,8 +568,8 @@ if plot == True:
     # print(plot_battery(path, energy_cost))
     # plot_battery_depletion(500, energy_cost)
     path = order_path(arcs, path)
-    # plot_path(arcs, path, super_grid, img=sat_map)
-    plot_detection_field(arcs, path, super_grid, img=sat_map, mode_of_travel='charging', travel_time=100)
+    plot_path(arcs, path, super_grid, img=sat_map)
+    # plot_detection_field(arcs, path, super_grid, img=sat_map, mode_of_travel='charging', travel_time=100)
 
 else: 
     arc_dictionary = get_arcs(super_grid)
