@@ -2,16 +2,16 @@ using JuMP, Gurobi, CSV, DataFrames
 
 const GRB_ENV = Gurobi.Env()
 
-scenario_name = "12x12"
-w=12
-h=12
-batteryCapacity = 1500
+scenario_name = "15x15"
+w=15
+h=15
+batteryCapacity = 100000
 
 dir2 = "./";
-tri= CSV.read("Buckner_tris_12_12.csv", DataFrame, header=0);
-arcs= CSV.read("Buckner_arcs_12_12.csv", DataFrame, header=0);
-ins = CSV.read("Buckner_ins_12_12.csv", DataFrame, header=0);
-outs = CSV.read("Buckner_outs_12_12.csv", DataFrame, header=0);
+tri= CSV.read("Buckner_tris_15_15.csv", DataFrame, header=0);
+arcs= CSV.read("Buckner_arcs_15_15.csv", DataFrame, header=0);
+ins = CSV.read("Buckner_ins_15_15.csv", DataFrame, header=0);
+outs = CSV.read("Buckner_outs_15_15.csv", DataFrame, header=0);
 
 D_lin = arcs[!,4];
 T_lin = arcs[!,5];
@@ -63,15 +63,15 @@ end
 time_total = 1000000; #number of seconds to traverse the graph
 
 s = 1 #the starting node of the troops
-f = 144 #the destination node of the troops
+f = 225 #the destination node of the troops
 N=w*h*2;
-A = 2312
+A = 3698
 
 
 function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, inflow, outflow, batteryCapacity)
     m = Model(() -> Gurobi.Optimizer(GRB_ENV))
-    MAXTIME = 600
-    set_optimizer_attributes(m, "TimeLimit" => MAXTIME, "MIPGap" => 1e-5, "OutputFlag" => 1)
+    MAXTIME = 1200
+    set_optimizer_attributes(m, "TimeLimit" => MAXTIME, "MIPGap" => 1e-2, "OutputFlag" => 1)
 
     # Step 1: Minimize detection to find the least-detection path
     @variable(m, x[1:A], Bin)  # Extend x to include the virtual arc
@@ -106,12 +106,6 @@ function two_step_optimization(w, h, s, f, A, N, d, t, E, tris, time_total, infl
     # Setting the start outflow
     @constraint(m, [i in outflow[s]], batteryLevel[i] == batteryCapacity * x[i])
 
-    # for i in 1:A  # Iterate over arcs
-    #     k = arcs[i, "Column2"]  # Get the starting node of arc i
-    #     if k != s  # Ignore the start node
-    #         @constraint(m, batteryLevel[i] == sum(x[j]*batteryLevel[j] for j in inflow[k]) - E[i] * x[i])
-    #     end
-    # end
 
     for i in 1:A  # Iterate over arcs
         k = arcs[i, "Column2"]  # Get the starting node of arc i
