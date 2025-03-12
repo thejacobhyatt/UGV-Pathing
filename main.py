@@ -358,7 +358,7 @@ def extract_path(csv_name):
             path.append(float(row[0]))
     return path
     
-def plot_path(arcs, path, super_grid, img):
+def plot_path(arcs, path, super_grid, img, LEVELS = 20):
     fig, ax = plt.subplots()
     step_size = 5
 
@@ -372,7 +372,17 @@ def plot_path(arcs, path, super_grid, img):
             for node in row:
                 ax.scatter(node.x, node.y, color="black", s=5)
 
+    # Plot Contours
+    Z = elevation_map[:, :, 0]
+    x = np.arange(Z.shape[1])
+    y = np.arange(Z.shape[0])
 
+    X, Y = np.meshgrid(x, y)
+
+    # Plot contours
+    ax.contour(X, Y, Z, levels=LEVELS, cmap="gray")
+
+    # Plot Seekers
     for seeker in seekers:
         (seeker_x, seeker_y), z, seeker_orient, _ = seekers[seeker]
         ax.arrow(seeker_x, seeker_y, 2 * step_size * np.cos(seeker_orient), 2 * step_size * np.sin(seeker_orient),
@@ -384,7 +394,6 @@ def plot_path(arcs, path, super_grid, img):
         ax.plot(xs, ys, color='red')
 
     # Path Code 
-
     nodes = [coord for arc in path for coord in arcs[arc]]
     x_coords, y_coords, z = zip(*[find_node_by_id(node, super_grid) for node in nodes])
 
@@ -489,8 +498,8 @@ if plot == True:
     path = extract_path('output_12x12.csv')
     arcs,energy_cost = extract_arcs('Buckner_arcs_12_12.csv')
     # print(energy_cost)
-    print(plot_battery(path, energy_cost))
-    plot_battery_depletion(500, energy_cost)
+    # print(plot_battery(path, energy_cost))
+    # plot_battery_depletion(500, energy_cost)
     path = order_path(arcs, path)
     plot_path(arcs, path, super_grid, img=sat_map)
 else: 
