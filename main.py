@@ -362,6 +362,8 @@ def extract_path(csv_name):
             path.append(float(row[0]))
     return path
     
+from matplotlib.lines import Line2D
+
 def plot_path(arcs, path, super_grid, img, LEVELS = 20):
     fig, ax = plt.subplots()
     step_size = 5
@@ -374,8 +376,8 @@ def plot_path(arcs, path, super_grid, img, LEVELS = 20):
     for grid in super_grid:
         for row in grid:
             for node in row:
-                ax.scatter(node.x, node.y, color="black", s=5)
-
+                # ax.scatter(node.x, node.y, color="black", s=5)
+                pass
     # Plot Contours
     Z = elevation_map[:, :, 0]
     x = np.arange(Z.shape[1])
@@ -384,13 +386,14 @@ def plot_path(arcs, path, super_grid, img, LEVELS = 20):
     X, Y = np.meshgrid(x, y)
 
     # Plot contours
-    ax.contour(X, Y, Z, levels=LEVELS, cmap="gray")
+    contours = ax.contour(X, Y, Z, levels=LEVELS, cmap="gray")
+    ax.clabel(contours, inline=True, fontsize=8, fmt="%.0f")
 
     # Plot Seekers
     for seeker in seekers:
         (seeker_x, seeker_y), z, seeker_orient, _ = seekers[seeker]
-        ax.arrow(seeker_x, seeker_y, 2 * step_size * np.cos(seeker_orient), 2 * step_size * np.sin(seeker_orient),
-                 width=step_size / 10, head_width=step_size / 2, color='red')
+        ax.arrow(seeker_x, seeker_y, step_size * np.cos(seeker_orient), step_size * np.sin(seeker_orient),
+                 width=step_size / 20, head_width=step_size / 2, color='red')
 
         thetas = np.linspace(0, 2 * np.pi, 100)
         xs = [seeker_x + z * np.cos(theta) for theta in thetas]
@@ -401,14 +404,26 @@ def plot_path(arcs, path, super_grid, img, LEVELS = 20):
     nodes = [coord for arc in path for coord in arcs[arc]]
     x_coords, y_coords, z = zip(*[find_node_by_id(node, super_grid) for node in nodes])
 
-    x_coords = [x - 144 if x > 144 else x for x in x_coords]
-    y_coords = [y - 144 if y > 144 else y for y in y_coords]
+    x_coords = [x - N // 2  if x > N // 2 else x for x in x_coords]
+    y_coords = [y - N // 2 if y > N // 2 else y for y in y_coords]
 
     for i in range(len(x_coords) - 1):
 
         color = 'green' if z[i] == 1 else 'blue'  # Use red for z=1, blue otherwise
 
         ax.plot([x_coords[i], x_coords[i + 1]], [y_coords[i], y_coords[i + 1]], color=color, linewidth=3)
+
+    legend_handles = [
+        Line2D([0], [0], color='green', lw=3, label='Charging'),
+        Line2D([0], [0], color='blue', lw=3, label='Not Charging'),
+        Line2D([0], [0], color='black', lw=1, label='Contours')
+    ]
+
+    ax.legend(handles=legend_handles, loc='upper right')
+
+    ax.annotate('N', xy=(65, 0), xytext=(65, 23),
+            arrowprops=dict(arrowstyle='-|>', linewidth=2, color='black', mutation_scale=15),
+            fontsize=12, fontweight='bold', ha='center')
 
     plt.show()
 
@@ -442,8 +457,8 @@ def plot_detection_field(arcs, path, super_grid, img, mode_of_travel='charging',
     nodes = [coord for arc in path for coord in arcs[arc]]
     x_coords, y_coords, z = zip(*[find_node_by_id(node, super_grid) for node in nodes])
 
-    x_coords = [x - 144 if x > 144 else x for x in x_coords]
-    y_coords = [y - 144 if y > 144 else y for y in y_coords]
+    x_coords = [x - N / 2 if x > N / 2 else x for x in x_coords]
+    y_coords = [y - N / 2 if y > N / 2 else y for y in y_coords]
 
     for i in range(len(x_coords) - 1):
         color = 'green' if z[i] == 1 else 'blue'  # Use green for z=1, blue otherwise
@@ -565,8 +580,8 @@ if plot == True:
     path = extract_path('output_12x12.csv')
     arcs,energy_cost = extract_arcs('Buckner_arcs_12_12.csv')
     # print(energy_cost)
-    # print(plot_battery(path, energy_cost))
-    # plot_battery_depletion(500, energy_cost)
+    #print(plot_battery(path, energy_cost))
+    # plot_battery_depletion(2000, energy_cost)
     path = order_path(arcs, path)
     plot_path(arcs, path, super_grid, img=sat_map)
     # plot_detection_field(arcs, path, super_grid, img=sat_map, mode_of_travel='charging', travel_time=100)
