@@ -15,9 +15,9 @@ from detection_funcs import get_audio_detection, seeker_orientation_uncertainty,
 
 # Constants 
 SITUATION = "Buckner"
-SPACING = 10
+SPACING = 2
 MAX_ELEVATION = 603
-DISTANCE_SCALE = 30
+DISTANCE_SCALE = 10
 GENERATOR_COEF = 5 # J per Second
 SPEED = 6.7 # m/s
 height_dic = {'charged':1.5, 'charging':1.5} #CONFIRM HEIGHTS - ASSUME 
@@ -573,8 +573,11 @@ def order_path(arcs, path):
         
 
 super_grid = setup(rows, cols)
-plot = True
+plot = False
 
+
+
+print(super_grid)
 
 if plot == True: 
     path = extract_path('output_12x12.csv')
