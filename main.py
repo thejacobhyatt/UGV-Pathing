@@ -15,7 +15,7 @@ from detection_funcs import get_audio_detection, seeker_orientation_uncertainty,
 
 # Constants 
 SITUATION = "Buckner"
-SPACING = 2
+SPACING = 10
 MAX_ELEVATION = 603
 DISTANCE_SCALE = 10
 GENERATOR_COEF = 5 # J per Second
@@ -536,7 +536,7 @@ def plot_battery_depletion(battery_capacity, energy_cost):
     plt.axhline(y=0, color='r', linestyle='--', label="Empty Battery")
     
     plt.xlabel("Step")
-    plt.ylabel("Battery Level")
+    plt.ylabel("Battery Level (wH)")
     plt.title("Battery Depletion Over Step")
     plt.legend()
     plt.grid(True)
@@ -573,7 +573,7 @@ def order_path(arcs, path):
         
 
 super_grid = setup(rows, cols)
-plot = False
+plot = True
 
 
 
@@ -584,7 +584,7 @@ if plot == True:
     arcs,energy_cost = extract_arcs('Buckner_arcs_12_12.csv')
     # print(energy_cost)
     #print(plot_battery(path, energy_cost))
-    # plot_battery_depletion(2000, energy_cost)
+    plot_battery_depletion(2000, energy_cost)
     path = order_path(arcs, path)
     plot_path(arcs, path, super_grid, img=sat_map)
     # plot_detection_field(arcs, path, super_grid, img=sat_map, mode_of_travel='charging', travel_time=100)
