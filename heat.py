@@ -8,7 +8,10 @@ df = pd.read_csv('Buckner_arcs_60_60.csv', header=None)
 # Extract necessary columns
 source_nodes = df[1]
 end_nodes = df[2]
-weights = df[5]
+
+# 3 is Detection 
+# 5 is Energy
+weights = df[]
 
 # Define the 12x12 grid
 grid_size = 60
@@ -23,7 +26,7 @@ for src, end, weight in zip(source_nodes, end_nodes, weights):
         weight_matrix[r, c] = weight
 
 plt.figure(figsize=(8, 8))
-plt.imshow(weight_matrix, cmap='viridis', interpolation='nearest')
+plt.imshow(np.log10(weight_matrix), cmap='viridis', interpolation='nearest')
 plt.colorbar(label="Weight")
 plt.xticks(ticks=range(grid_size), labels=range(1, grid_size + 1))
 plt.yticks(ticks=range(grid_size), labels=range(1, grid_size + 1))

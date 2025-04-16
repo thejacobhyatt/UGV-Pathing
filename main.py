@@ -487,7 +487,7 @@ def plot_detection_field(arcs, path, super_grid, img, mode_of_travel='charging',
             risk_levels[i, j] = max(risk_levels[i, j], visual_detection, audio_detection)
 
     # Plot Detection Field Heatmap
-    contour = ax.contourf(X, Y, risk_levels, levels=20, cmap="Reds", alpha=0.6)
+    contour = ax.contourf(X, Y, np.log10(risk_levels), levels=20, cmap="Reds", alpha=0.6)
     plt.colorbar(contour, ax=ax, label="Detection Risk Level")
     plt.show()
 
@@ -587,7 +587,7 @@ if plot == True:
     plot_battery_depletion(2000, energy_cost)
     path = order_path(arcs, path)
     plot_path(arcs, path, super_grid, img=sat_map)
-    # plot_detection_field(arcs, path, super_grid, img=sat_map, mode_of_travel='charging', travel_time=100)
+    plot_detection_field(arcs, path, super_grid, img=sat_map, mode_of_travel='charging', travel_time=100)
 
 else: 
     arc_dictionary = get_arcs(super_grid)
